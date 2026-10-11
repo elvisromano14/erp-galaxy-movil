@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, tipos, pruebas y empaquetado
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4   # versión tomada de "packageManager"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Lo vendorizado del ERP (OpenAPI, tipos y dominio) debe ser idéntico al commit fijado en erp-contract.json.
+      - name: Contratos del ERP al día
+        run: |
+          COMMIT=$(node -p "require('./erp-contract.json').commit")
+          REPO=$(node -p "require('./erp-contract.json').repo")
+          git clone --quiet "$REPO" "$RUNNER_TEMP/erp"
+          git -C "$RUNNER_TEMP/erp" checkout --quiet "$COMMIT"
+          node scripts/sync-erp-contracts.mjs --check --erp "$RUNNER_TEMP/erp"
+
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+      # Humo de empaquetado: Metro + Hermes deben poder compilar la app (detecta importaciones rotas, migraciones SQL, etc.).
+      - name: Empaquetar Android (humo)
+        run: npx expo export --platform android --output-dir "$RUNNER_TEMP/export"

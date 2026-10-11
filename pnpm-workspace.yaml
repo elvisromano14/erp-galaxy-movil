@@ -1,0 +1,5 @@
+# pnpm 12: scripts de instalación permitidos (binarios nativos de las herramientas de compilación).
+allowBuilds:
+  esbuild: true
+  '@parcel/watcher': true
+  unrs-resolver: true

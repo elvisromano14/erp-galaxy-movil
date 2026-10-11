@@ -1,0 +1,56 @@
+{
+  "name": "erp-galaxy-movil",
+  "version": "0.1.0",
+  "private": true,
+  "description": "App móvil (Android) de vendedores del Mini ERP: productos, clientes, cotizaciones y pedidos, offline-first.",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "contracts:sync": "node scripts/sync-erp-contracts.mjs",
+    "contracts:check": "node scripts/sync-erp-contracts.mjs --check",
+    "db:generate": "drizzle-kit generate",
+    "check": "pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "packageManager": "pnpm@12.10.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "decimal.js": "^10.6.0",
+    "drizzle-orm": "^0.45.4",
+    "expo": "~57.0.27",
+    "expo-camera": "~57.0.6",
+    "expo-constants": "~57.0.21",
+    "expo-crypto": "~57.0.3",
+    "expo-linking": "~57.0.12",
+    "expo-local-authentication": "~57.0.3",
+    "expo-print": "~57.0.2",
+    "expo-router": "~57.0.25",
+    "expo-secure-store": "~57.0.4",
+    "expo-sharing": "~57.0.22",
+    "expo-sqlite": "~57.0.4",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-get-random-values": "~1.11.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.2",
+    "uuid": "^14.0.3",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/react": "~19.2.18",
+    "babel-plugin-inline-import": "^3.0.0",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "^57.0.2",
+    "jest": "^30.5.2",
+    "jest-expo": "^57.0.5",
+    "typescript": "~6.0.3"
+  }
+}
