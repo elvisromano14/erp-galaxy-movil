@@ -1,4 +1,6 @@
+import { createHash, randomBytes } from 'node:crypto';
 import type { TokenPair, TokenStore } from '../src/core/api/ApiClient';
+import type { Hasher, PinRecord, PinStorage } from '../src/core/auth/PinLock';
 
 export const memoryTokens = (initial?: string): TokenStore & { refresh: string | null; cleared: number } => {
   const store = {
@@ -28,3 +30,9 @@ export function fakeFetch(routes: Record<string, Handler | { status?: number; bo
   }) as typeof fetch;
   return { impl, calls };
 }
+
+export const nodeHasher: Hasher = { randomHex: (n) => randomBytes(n).toString('hex'), sha256: async (t) => createHash('sha256').update(t).digest('hex') };
+export const memoryPin = (): PinStorage & { rec: PinRecord | null } => {
+  const s = { rec: null as PinRecord | null, async get() { return s.rec; }, async set(r: PinRecord) { s.rec = r; }, async clear() { s.rec = null; } };
+  return s;
+};

@@ -18,3 +18,10 @@ Registro breve de lo decidido y por qué (formato ADR resumido). Las decisiones 
 | 12 | **pnpm con `node-linker=hoisted`** | Metro necesita un `node_modules` plano |
 | 13 | **Sin UI kit en M0** (componentes nativos); elegir Paper/NativeWind al inicio de M1 | Plan #8; se decide con las pantallas de negocio a la vista |
 | 14 | **Sin licencia** de momento | El propietario debe elegirla |
+| 15 | **La navegación la gobierna el estado de la sesión** (`SessionService`: arranque → login → empresa → PIN → descarga → listo / bloqueado) | Una sola fuente de verdad, probada sin UI; las pantallas solo reflejan el estado |
+| 16 | **PIN de 4–6 dígitos** con sal y resumen estirado en SecureStore; 5 intentos fallidos → se exige login (la cola se conserva) | El PIN nunca viaja al servidor; la huella es opcional |
+| 17 | **Sin red al arrancar no bloquea**: abre con PIN y trabaja con los datos locales; la versión obsoleta y el dispositivo revocado sí bloquean | Principio rector: el vendedor nunca espera a la red |
+| 18 | **Cerrar sesión no borra datos ni la cola**; cambiar de empresa en el mismo teléfono exige no tener pendientes de la anterior y limpia la réplica | Evita perder trabajo y mezclar empresas |
+| 19 | **Dispositivo revocado**: se borra la réplica y se conserva el outbox | Administración puede rehabilitar el equipo o recuperar lo pendiente |
+| 20 | **Páginas de pull atómicas**: datos + cursor en una transacción SQLite; lápidas de clientes/productos = inactivo, no borrado | Reanudable sin huecos; los documentos locales no quedan huérfanos |
+| 21 | **Pruebas con SQLite real** (better-sqlite3 + las migraciones reales) y **de integración contra la API real del ERP** | Detecta divergencias de contrato que un simulador no ve |

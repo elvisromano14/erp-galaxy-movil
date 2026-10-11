@@ -1,37 +1,39 @@
-import { Link } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import type { AppConfig } from '../core/api/contract';
-import { ApiError } from '../core/api/errors';
-import { api, env } from '../core/services';
+import { Alert } from 'react-native';
+import { session } from '../core/services';
+import { useSession } from '../core/session/hooks';
+import { Banner, Busy, Button, ErrorText, Muted, Screen, Title } from '../ui/kit';
 
-/** Pantalla inicial (M0): comprueba que la app llega al ERP y muestra versiones. El acceso completo llega en M1. */
+/** Inicio (M1): estado de la sesión y de la sincronización. Los módulos de negocio llegan en M2+. */
 export default function Home() {
-  const [cfg, setCfg] = useState<AppConfig | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const profile = useSession((s) => s.profile);
+  const device = useSession((s) => s.deviceCode);
+  const online = useSession((s) => s.online);
+  const busy = useSession((s) => s.busy);
+  const error = useSession((s) => s.error);
+  const lastSync = useSession((s) => s.lastSyncAt);
+  const maintenance = useSession((s) => s.maintenance);
 
-  useEffect(() => {
-    api.get<AppConfig>('/app/config', { auth: false }).then(setCfg).catch((e: unknown) => setError(e instanceof ApiError ? e.message : 'Error desconocido'));
-  }, []);
+  function logout() {
+    const pending = session.pendingCount();
+    const go = () => void session.logout();
+    if (pending === 0) return go();
+    Alert.alert('Hay operaciones pendientes', `${pending} operación(es) aún no se han enviado. Se conservarán en este teléfono y se enviarán cuando vuelva a iniciar sesión. ¿Cerrar sesión?`, [
+      { text: 'Cancelar', style: 'cancel' }, { text: 'Cerrar sesión', style: 'destructive', onPress: go },
+    ]);
+  }
 
   return (
-    <View style={s.container}>
-      <Text style={s.title}>ERP Ventas</Text>
-      <Text style={s.muted}>Entorno {env.appEnv} · versión {env.appVersion}</Text>
-      <Text style={s.muted}>{env.apiUrl}</Text>
-      {!cfg && !error && <ActivityIndicator style={{ marginTop: 24 }} />}
-      {error && <Text style={s.error}>Sin conexión con el servidor: {error}</Text>}
-      {cfg && <Text style={s.ok}>Servidor al día · versión mínima de la app {cfg.minAppVersion}</Text>}
-      <Link href="/login" style={s.link}>Iniciar sesión</Link>
-    </View>
+    <Screen scroll>
+      <Title>{profile?.company?.tradeName ?? profile?.company?.legalName ?? 'ERP Ventas'}</Title>
+      <Muted>{profile?.user.fullName} · dispositivo {device}</Muted>
+      {maintenance && <Banner>{maintenance}</Banner>}
+      {!online && <Banner>Sin conexión con el servidor. Trabaja con los datos de este teléfono.</Banner>}
+      <Muted>Última sincronización: {lastSync ? new Date(lastSync).toLocaleString('es-VE') : 'nunca'}</Muted>
+      <ErrorText>{error}</ErrorText>
+      <Button title="Sincronizar ahora" disabled={busy} onPress={() => void session.sync()} />
+      <Busy show={busy} />
+      <Button title="Bloquear" kind="secondary" onPress={() => session.lock()} />
+      <Button title="Cerrar sesión" kind="secondary" onPress={logout} />
+    </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  container: { flex: 1, padding: 24, gap: 8, justifyContent: 'center' },
-  title: { fontSize: 28, fontWeight: '700' },
-  muted: { color: '#667085' },
-  ok: { color: '#067647', marginTop: 16 },
-  error: { color: '#b42318', marginTop: 16 },
-  link: { marginTop: 32, fontSize: 18, color: '#175cd3' },
-});

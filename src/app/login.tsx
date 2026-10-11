@@ -1,61 +1,24 @@
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Button, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { CompanyChoice } from '../core/auth/AuthService';
-import { ApiError } from '../core/api/errors';
-import { auth } from '../core/services';
+import { env, session } from '../core/services';
+import { useSession } from '../core/session/hooks';
+import { Busy, Button, ErrorText, Field, Muted, Screen, Title } from '../ui/kit';
 
-/** Login → (selección de empresa) → registro del dispositivo. La sincronización inicial (bootstrap) llega en M1. */
 export default function Login() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [companies, setCompanies] = useState<CompanyChoice[] | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
-
-  async function finish() {
-    const d = await auth.registerDevice();
-    setMessage({ ok: true, text: `Dispositivo ${d.deviceCode} registrado` });
-    router.replace('/');
-  }
-
-  async function run(fn: () => Promise<void>) {
-    setBusy(true); setMessage(null);
-    try { await fn(); } catch (e) {
-      setMessage({ ok: false, text: e instanceof ApiError ? e.message : 'Error desconocido' });
-    } finally { setBusy(false); }
-  }
-
-  const login = () => run(async () => {
-    const r = await auth.login(email, password);
-    if (r.requiresCompanySelection) setCompanies(r.companies);
-    else await finish();
-  });
-  const choose = (id: string) => run(async () => { await auth.selectCompany(id); await finish(); });
+  const busy = useSession((s) => s.busy);
+  const error = useSession((s) => s.error);
 
   return (
-    <View style={s.container}>
-      {!companies ? (
-        <>
-          <TextInput style={s.input} placeholder="Correo" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
-          <TextInput style={s.input} placeholder="Contraseña" secureTextEntry value={password} onChangeText={setPassword} />
-          <Button title="Entrar" onPress={login} disabled={busy || !email || !password} />
-        </>
-      ) : (
-        <>
-          <Text style={s.title}>Elija la empresa</Text>
-          {companies.map((c) => <Button key={c.id} title={`${c.tradeName ?? c.legalName} (${c.rif})`} onPress={() => choose(c.id)} disabled={busy} />)}
-        </>
-      )}
-      {busy && <ActivityIndicator />}
-      {message && <Text style={{ color: message.ok ? '#067647' : '#b42318' }}>{message.text}</Text>}
-    </View>
+    <Screen scroll>
+      <Title>ERP Ventas</Title>
+      <Muted>Entorno {env.appEnv} · versión {env.appVersion}</Muted>
+      <Field label="Correo" autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={email} onChangeText={setEmail} />
+      <Field label="Contraseña" secureTextEntry autoComplete="password" value={password} onChangeText={setPassword} />
+      <ErrorText>{error}</ErrorText>
+      <Button title="Entrar" disabled={busy || !email.trim() || !password} onPress={() => void session.login(email, password)} />
+      <Busy show={busy} />
+      <Muted>El primer acceso requiere conexión. Después podrá abrir la app con su PIN, también sin señal.</Muted>
+    </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  container: { flex: 1, padding: 24, gap: 12, justifyContent: 'center' },
-  title: { fontSize: 20, fontWeight: '600' },
-  input: { borderWidth: 1, borderColor: '#d0d5dd', borderRadius: 8, padding: 12, fontSize: 16 },
-});

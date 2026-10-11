@@ -573,15 +573,17 @@ Se configuran con `app.config.ts` y la variable `APP_ENV`; permiten instalar las
 
 **Objetivo:** el vendedor inicia sesión y descarga su catálogo.
 
-- [ ] Pantalla de login y manejo de errores (sin red, credenciales, usuario inactivo)
-- [ ] Selección de empresa; `select-company`
-- [ ] Registro de dispositivo (`devices/register`) → `deviceId`, `deviceCode`
-- [ ] Almacenamiento seguro de tokens; renovación automática; cierre de sesión
-- [ ] PIN + biometría; bloqueo por inactividad
-- [ ] **Bootstrap** con progreso, reanudable y cancelable
-- [ ] `GET /app/config` (versión mínima, bloqueo por versión)
-- [ ] Esquema de **permisos** en cliente (`usePermission`)
-- [ ] Pruebas: sesión vencida, reinicio de la app durante el bootstrap
+- [x] Pantalla de login y manejo de errores (sin red, credenciales, usuario inactivo)
+- [x] Selección de empresa; `select-company`
+- [x] Registro de dispositivo (`devices/register`) → `deviceId`, `deviceCode`
+- [x] Almacenamiento seguro de tokens; renovación automática; cierre de sesión
+- [x] PIN + biometría; bloqueo por inactividad
+- [x] **Bootstrap** con progreso, reanudable y cancelable
+- [x] `GET /app/config` (versión mínima, bloqueo por versión)
+- [x] Esquema de **permisos** en cliente (`usePermission`)
+- [x] Pruebas: sesión vencida, reinicio de la app durante el bootstrap
+
+**Estado: implementado y verificado** (pruebas unitarias con SQLite real e integración contra el ERP real; pendiente probar en teléfono físico).
 
 **Aceptación:** tras login, en un teléfono limpio el catálogo completo queda local en < 3 min; al reiniciar sin red, la app abre con PIN y muestra datos.
 

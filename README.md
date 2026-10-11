@@ -2,7 +2,7 @@
 
 App móvil **Android** de vendedores del [Mini ERP](https://github.com/elvisromano14/erp-galaxy) (multiempresa, Venezuela): consulta de productos y existencias, clientes, **cotizaciones y pedidos de venta**, con operación **offline-first** (la UI trabaja siempre contra SQLite; la red solo sincroniza).
 
-> **Estado: M0 – fundación.** El proyecto compila y empaqueta (Expo SDK 57, Hermes), tiene cliente de API con renovación de sesión, registro de dispositivo, motor de pull incremental, esquema local (Drizzle/SQLite), el dominio del ERP compartido y CI. Las pantallas de negocio llegan por sprints (ver [plan](docs/PLAN-MOVIL.md#14-plan-por-sprints-m0m8)).
+> **Estado: M1 – acceso, dispositivo y descarga inicial.** Login → empresa → registro de dispositivo → PIN/huella → descarga inicial reanudable del catálogo a SQLite → sincronización incremental, con bloqueo por inactividad, dispositivo revocado y versión mínima. Verificado también contra la API real del ERP. Las pantallas de negocio (productos, clientes, cotizaciones, pedidos) llegan en M2+ (ver [plan](docs/PLAN-MOVIL.md#14-plan-por-sprints-m0m8)).
 
 ## Documentación
 
@@ -28,10 +28,11 @@ UI (Expo Router) → servicios → repositorios (Drizzle) → SQLite (réplica +
 
 ```
 src/
-├── app/            rutas (Expo Router)
-├── core/           api (ApiClient, errores, contrato), auth, config
-├── db/             client SQLite, esquema Drizzle y migraciones
-├── sync/           backoff, pull (push y motor en M3)
+├── app/            pantallas (Expo Router): login, empresa, PIN, desbloqueo, descarga, bloqueo, inicio
+├── core/           api (ApiClient, errores, contrato), auth (PIN, huella, permisos), session (máquina de estados), config
+├── db/             client SQLite, esquema Drizzle, migraciones, meta y restablecer réplica
+├── sync/           pull incremental, almacén SQLite de las páginas, descarga inicial, backoff (push y motor en M3)
+├── ui/             componentes base
 └── vendor/         OpenAPI/tipos y dominio del ERP (generado: no editar)
 ```
 
@@ -42,7 +43,8 @@ Requisitos: Node ≥ 24 y pnpm 12. Para ejecutar en un teléfono/emulador Androi
 ```bash
 pnpm install
 pnpm check            # lint + tipos + pruebas
-pnpm test             # pruebas unitarias (Jest)
+pnpm test             # pruebas unitarias (Jest, SQLite real con better-sqlite3)
+pnpm test:int         # integración contra la API REAL del ERP (ver abajo)
 pnpm start            # servidor de desarrollo (Expo)
 ```
 
@@ -58,6 +60,14 @@ pnpm contracts:check -- --erp <ruta>           # falla si lo vendorizado difiere
 ```
 
 El CI clona el ERP en el commit fijado y ejecuta la comprobación, de modo que la app nunca queda desfasada sin que se note.
+
+### Integración contra el ERP real
+
+`pnpm test:int` crea una empresa de prueba, un vendedor y un catálogo en un ERP local y recorre el flujo completo de la app (login, dispositivo, PIN, descarga inicial, sincronización, revocación). Requiere el ERP corriendo (p. ej. `scripts/dev.sh up` del repositorio del ERP) y, como inicia sesión varias veces, conviene subir el límite de intentos de la API local (`THROTTLE_LOGIN_PER_MIN=1000`):
+
+```bash
+ERP_E2E_URL=http://127.0.0.1:3101 ERP_E2E_SUPER_EMAIL=superadmin@erp.local ERP_E2E_SUPER_PASSWORD='Admin12345!' pnpm test:int
+```
 
 ### Base local
 

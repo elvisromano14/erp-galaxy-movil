@@ -9,11 +9,12 @@
     "android": "expo start --android",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "jest",
+    "test": "jest --testPathIgnorePatterns integration",
     "contracts:sync": "node scripts/sync-erp-contracts.mjs",
     "contracts:check": "node scripts/sync-erp-contracts.mjs --check",
     "db:generate": "drizzle-kit generate",
-    "check": "pnpm lint && pnpm typecheck && pnpm test"
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "test:int": "jest -c jest.int.config.js"
   },
   "packageManager": "pnpm@12.10.1",
   "engines": {
@@ -43,9 +44,11 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.2.18",
     "babel-plugin-inline-import": "^3.0.0",
+    "better-sqlite3": "^13.0.3",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.39.5",
     "eslint-config-expo": "^57.0.2",

@@ -9,6 +9,13 @@ export interface LoginResult {
   requiresCompanySelection: boolean;
 }
 
+export interface Profile {
+  user: LoginResult['user'];
+  company: { id: string; rif: string; legalName: string; tradeName: string | null } | null;
+  permissions: string[];
+  roles: { code: string; name: string }[];
+}
+
 /** Identidad estable del dispositivo en el servidor: se genera una vez y vive en el almacenamiento seguro. */
 export interface DeviceStore {
   getKey(): Promise<string | null>;
@@ -39,6 +46,12 @@ export class AuthService {
     const r = await this.api.post<TokenPair & { companyId: string }>('/auth/select-company', { companyId });
     await this.keep(r);
     return r.companyId;
+  }
+
+  /** Perfil de la sesión actual (empresa, roles y permisos): se guarda localmente para operar sin conexión. */
+  async loadProfile(): Promise<Profile> {
+    const me = await this.api.get<Profile & { companies: CompanyChoice[] }>('/auth/me');
+    return { user: me.user, company: me.company, permissions: me.permissions ?? [], roles: me.roles ?? [] };
   }
 
   /** Idempotente: el mismo `deviceKey` siempre devuelve el mismo dispositivo. */
