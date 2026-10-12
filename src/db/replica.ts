@@ -2,9 +2,16 @@ import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { AppDb } from './types';
 import { META, deleteMeta } from './meta';
 import {
-  appSettings, currencies, customers, exchangeRates, priceLists, productPrices, productRefs, products, salesDocumentLines, salesDocuments, stockSnapshots, taxes, warehouses,
+  appSettings, currencies, customers, exchangeRates, outbox, syncLog, syncMeta, priceLists, productPrices, productRefs, products, salesDocumentLines, salesDocuments, stockSnapshots, taxes, warehouses,
 } from './schema';
 import { PULL_ORDER } from '../core/api/contract';
+
+/** Borra TODO (réplica, documentos, clientes, cola y metadatos): solo tras vencer la retención de un dispositivo revocado. */
+export function wipeEverything(db: AppDb): void {
+  db.transaction((tx) => {
+    for (const t of [productRefs, productPrices, products, stockSnapshots, warehouses, customers, taxes, exchangeRates, priceLists, currencies, appSettings, salesDocumentLines, salesDocuments, outbox, syncMeta, syncLog]) tx.delete(t).run();
+  });
+}
 
 /**
  * Borra la réplica (catálogos, clientes, existencias, documentos que vinieron del servidor) y los cursores.

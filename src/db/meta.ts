@@ -10,6 +10,7 @@ export const META = {
   permissions: 'permissions',
   lastSyncAt: 'last_sync_at',
   localSeq: 'local_seq',
+  revokedAt: 'revoked_at',
   cursor: (entity: string) => `cursor:${entity}`,
 } as const;
 

@@ -4,6 +4,9 @@ import { META, getMeta, setMeta } from '../meta';
 import { outbox } from '../schema';
 import type { AppDb } from '../types';
 
+/** Espera máxima razonable de un reintento (backoff tope 30 min + holgura). Una espera mayor indica que el reloj del teléfono retrocedió. */
+export const MAX_RETRY_WAIT_MS = 2 * 3_600_000;
+
 export type OutboxStatus = 'PENDING' | 'SENDING' | 'DONE' | 'REJECTED' | 'REVIEW';
 export type OutboxRow = typeof outbox.$inferSelect;
 export type SyncEntityName = 'customer' | 'sales_quote' | 'sales_order';
@@ -38,8 +41,10 @@ export function enqueue(db: AppDb, i: EnqueueInput): OutboxRow {
 
 /** Operaciones listas para enviar (PENDING cuya espera ya venció), en orden de secuencia. */
 export function nextBatch(db: AppDb, limit: number, nowIso: string): OutboxRow[] {
+  // Reloj desfasado: si la espera guardada está absurdamente lejos (el reloj retrocedió), la operación se considera vencida.
+  const tooFar = new Date(new Date(nowIso).getTime() + MAX_RETRY_WAIT_MS).toISOString();
   return db.select().from(outbox)
-    .where(and(eq(outbox.status, 'PENDING'), or(isNull(outbox.nextAttemptAt), lte(outbox.nextAttemptAt, nowIso))))
+    .where(and(eq(outbox.status, 'PENDING'), or(isNull(outbox.nextAttemptAt), lte(outbox.nextAttemptAt, nowIso), sql`${outbox.nextAttemptAt} > ${tooFar}`)))
     .orderBy(asc(outbox.clientSeq)).limit(limit).all();
 }
 

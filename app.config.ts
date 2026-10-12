@@ -6,6 +6,8 @@ import type { ExpoConfig } from 'expo/config';
  */
 const env = (process.env.APP_ENV ?? 'dev') as 'dev' | 'staging' | 'prod';
 const suffix = env === 'prod' ? '' : `.${env}`;
+// Cifrado de la base con SQLCipher: se activa con SQLCIPHER=1 al compilar (validar en un teléfono real antes de usarlo en producción).
+const sqlcipher = process.env.SQLCIPHER === '1';
 
 const API_URLS: Record<typeof env, string> = {
   dev: 'http://10.0.2.2:3101', // emulador Android → API local del ERP
@@ -36,10 +38,10 @@ export default (): ExpoConfig => ({
   plugins: [
     'expo-router',
     'expo-secure-store',
-    'expo-sqlite',
+    ['expo-sqlite', { useSQLCipher: sqlcipher }],
     ['expo-local-authentication', { faceIDPermission: false }],
     ['expo-camera', { cameraPermission: 'Se usa la cámara para escanear códigos de barras de productos.' }],
     'expo-sharing',
   ],
-  extra: { appEnv: env, apiUrl: process.env.API_URL ?? API_URLS[env] },
+  extra: { appEnv: env, apiUrl: process.env.API_URL ?? API_URLS[env], sqlcipher },
 });

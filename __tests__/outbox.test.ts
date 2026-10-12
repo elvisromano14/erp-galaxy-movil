@@ -48,7 +48,7 @@ describe('outbox', () => {
   it('respeta la espera de reintento (next_attempt_at) y recupera las SENDING tras un cierre forzado', () => {
     const { db } = createTestDb();
     const a = enqueue(db, ent('e1')); const b = enqueue(db, ent('e2'));
-    setOutcome(db, a.clientOpId, { status: 'PENDING', attempts: 1, nextAttemptAt: '2099-01-01T00:00:00.000Z' });
+    setOutcome(db, a.clientOpId, { status: 'PENDING', attempts: 1, nextAttemptAt: new Date(Date.now() + 10 * 60_000).toISOString() });
     expect(nextBatch(db, 10, new Date().toISOString()).map((o) => o.entityId)).toEqual(['e2']);
     markSending(db, [b.clientOpId]);
     expect(nextBatch(db, 10, new Date().toISOString())).toHaveLength(0);

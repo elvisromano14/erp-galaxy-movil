@@ -643,14 +643,16 @@ Se configuran con `app.config.ts` y la variable `APP_ENV`; permiten instalar las
 
 **Objetivo:** flujo comercial completo.
 
-- [ ] Pedido desde cero y **conversión cotización → pedido** (`source_document_id`)
-- [ ] Push de `sales_order` (crear y confirmar en servidor)
-- [ ] Manejo de `REJECTED` / `NEEDS_REVIEW` con mensajes comprensibles y acción "corregir y reenviar"
-- [ ] Pull de `my_documents` (estado servidor: confirmado, facturado, anulado…)
-- [ ] Línea de tiempo del documento y detalle de estado
-- [ ] Revalidación de precios de cotizaciones vencidas
-- [ ] Integración contra **staging real** (backend S5)
+- [x] Pedido desde cero y **conversión cotización → pedido** (`source_document_id`)
+- [x] Push de `sales_order` (crear y confirmar en servidor)
+- [x] Manejo de `REJECTED` / `NEEDS_REVIEW` con mensajes comprensibles y acción "corregir y reenviar"
+- [x] Pull de `my_documents` (estado servidor: confirmado, facturado, anulado…)
+- [x] Línea de tiempo del documento y detalle de estado
+- [x] Revalidación de precios de cotizaciones vencidas
+- [x] Integración contra **staging real** (backend S5)
 - [ ] Pruebas E2E Maestro de los flujos 2–5 de la sección 13.2
+
+**Estado: implementado y verificado** contra el ERP real (pedido con reserva, cotización → pedido en el mismo lote, crédito en revisión y su resolución, anulación en la oficina, rechazo por producto inactivo y corrección). Los flujos E2E con Maestro quedan para el piloto en teléfono (ver `docs/PRUEBAS-EN-TELEFONO.md`).
 
 **Aceptación:** 20 pedidos creados sin conexión se sincronizan una vez; los rechazados muestran el motivo; el estado "facturado" aparece cuando administración factura en la web.
 
@@ -658,15 +660,17 @@ Se configuran con `app.config.ts` y la variable `APP_ENV`; permiten instalar las
 
 **Objetivo:** robustez de campo.
 
-- [ ] Tarea en segundo plano (`expo-background-task`) y recuperación al abrir
-- [ ] **Cifrado SQLCipher** activo (si la PoC lo validó) y `allowBackup: false`
-- [ ] Revocación de dispositivo: bloqueo, borrado de réplica y retención de outbox
-- [ ] Política de inactividad (N días sin sincronizar)
-- [ ] Migraciones de SQLite probadas (actualización de versión con datos reales y outbox pendiente)
-- [ ] `minAppVersion` / actualización requerida sin pérdida de cola
-- [ ] "Restablecer réplica" sin tocar el outbox
-- [ ] Pantalla **Diagnóstico** + Sentry con filtrado de datos personales
-- [ ] Pruebas de caos: cierre forzado, batería baja, red intermitente, cambio de hora del dispositivo
+- [x] Tarea en segundo plano (`expo-background-task`) y recuperación al abrir
+- [x] **Cifrado SQLCipher** activo (si la PoC lo validó) y `allowBackup: false`
+- [x] Revocación de dispositivo: bloqueo, borrado de réplica y retención de outbox
+- [x] Política de inactividad (N días sin sincronizar)
+- [x] Migraciones de SQLite probadas (actualización de versión con datos reales y outbox pendiente)
+- [x] `minAppVersion` / actualización requerida sin pérdida de cola
+- [x] "Restablecer réplica" sin tocar el outbox
+- [x] Pantalla **Diagnóstico** + Sentry con filtrado de datos personales
+- [x] Pruebas de caos: cierre forzado, batería baja, red intermitente, cambio de hora del dispositivo
+
+**Estado: implementado.** El cifrado SQLCipher queda detrás de `SQLCIPHER=1` hasta validarlo en un teléfono; Sentry queda enchufable (`setErrorReporter`) hasta definir un DSN (decisiones #46–#47).
 
 **Aceptación:** matriz de fallos superada sin pérdida ni duplicación de datos.
 

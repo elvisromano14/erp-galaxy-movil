@@ -8,6 +8,7 @@ import { useSession } from '../core/session/hooks';
 import type { SessionStatus } from '../core/session/SessionService';
 import { session } from '../core/services';
 import { startSyncTriggers } from '../sync/triggers';
+import { registerBackgroundSync } from '../sync/backgroundTask';
 import { db } from '../db/client';
 import migrations from '../db/migrations/migrations';
 
@@ -24,6 +25,8 @@ function Gate() {
   const segments = useSegments();
 
   useEffect(() => { void session.start(); return startSyncTriggers(session); }, []);
+  // La tarea periódica en segundo plano se registra cuando la sesión está lista (complementaria: no está garantizada por el sistema).
+  useEffect(() => { if (status === 'ready') void registerBackgroundSync(); }, [status]);
   useEffect(() => {
     const sub = AppState.addEventListener('change', (st) => (st === 'active' ? session.onForeground() : st === 'background' ? session.onBackground() : undefined));
     return () => sub.remove();
@@ -48,6 +51,7 @@ function Gate() {
       <Stack.Screen name="document/[id]" options={{ headerShown: true, title: 'Cotización' }} />
       <Stack.Screen name="document/pick-customer" options={{ headerShown: true, title: 'Elegir cliente', presentation: 'modal' }} />
       <Stack.Screen name="document/pick-product" options={{ headerShown: true, title: 'Agregar producto', presentation: 'modal' }} />
+      <Stack.Screen name="diagnostics" options={{ headerShown: true, title: 'Diagnóstico' }} />
       <Stack.Screen name="sync" options={{ headerShown: true, title: 'Sincronización' }} />
       <Stack.Screen name="scan" options={{ headerShown: true, title: 'Escanear código', presentation: 'modal' }} />
     </Stack>

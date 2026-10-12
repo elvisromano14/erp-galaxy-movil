@@ -2,7 +2,7 @@
 
 App móvil **Android** de vendedores del [Mini ERP](https://github.com/elvisromano14/erp-galaxy) (multiempresa, Venezuela): consulta de productos y existencias, clientes, **cotizaciones y pedidos de venta**, con operación **offline-first** (la UI trabaja siempre contra SQLite; la red solo sincroniza).
 
-> **Estado: M4 – cotizaciones.** Acceso con PIN/huella, descarga inicial, catálogo de productos y cartera de clientes con su cola de envío (M1–M3), más el **editor de cotizaciones**: cliente → productos (buscador, escáner o desde el detalle del producto) → condiciones → totales en vivo con el dominio compartido del ERP (IVA por línea, equivalente en Bs), políticas del vendedor (descuento máximo, precio de lista), validaciones bloqueantes y avisos (existencia, crédito, tasa), borrador autoguardado, número provisional `OFF-Dxx-nnnnnn`, **PDF compartible** (WhatsApp, correo), duplicar y envío por la cola con número definitivo del servidor. Verificado contra la API real del ERP: los totales calculados en el teléfono **coinciden con los del servidor**. Sigue M5 (pedidos de venta y conversión de cotización a pedido) — ver el [plan](docs/PLAN-MOVIL.md#14-plan-por-sprints-m0m8).
+> **Estado: M6 – la app está completa para el piloto.** Acceso con PIN/huella, descarga inicial, catálogo, clientes, **cotizaciones y pedidos** (con conversión cotización → pedido, reserva de existencias, revisión por crédito y estados de la oficina), sincronización idempotente con cola de envío y, ahora, el **endurecimiento offline**: tarea en segundo plano, bloqueo tras 14 días sin sincronizar, retención de 7 días tras una revocación, restablecer datos sin perder pendientes, diagnóstico, registro sin datos personales, protección contra relojes desfasados y cifrado opcional de la base (SQLCipher). Verificado con 126 pruebas (incluida una de caos con red intermitente) y contra la API real del ERP. **Siguiente: probar en un teléfono** ([guía](docs/PRUEBAS-EN-TELEFONO.md)) y el piloto (M7).
 >
 > **En stand by:** enlace de descarga de la app dentro de Configuración del ERP (se hará cuando haya un APK de release firmado).
 
@@ -14,6 +14,7 @@ App móvil **Android** de vendedores del [Mini ERP](https://github.com/elvisroma
 | [`docs/ANALISIS-ERP-VS-PLAN.md`](docs/ANALISIS-ERP-VS-PLAN.md) | Qué ya existía en el ERP, qué se construyó y las decisiones tomadas |
 | [`docs/API-MOVIL.md`](docs/API-MOVIL.md) | **Contrato** con el ERP: cabeceras, `sync/pull`, `sync/push`, estados y errores |
 | [`docs/DECISIONES.md`](docs/DECISIONES.md) | Decisiones de arquitectura (por qué así) |
+| [`docs/PRUEBAS-EN-TELEFONO.md`](docs/PRUEBAS-EN-TELEFONO.md) | Cómo compilar la app, instalarla en un teléfono y la lista de pruebas de campo |
 
 ## Arquitectura (resumen)
 
@@ -33,8 +34,8 @@ src/
 ├── app/            pantallas (Expo Router): acceso, productos, clientes, documentos (editor, detalle), sincronización, escáner
 ├── core/           api (ApiClient, errores, contrato), auth (PIN, huella, permisos), session (máquina de estados), config
 ├── db/             client SQLite, esquema Drizzle, migraciones, repositorios (productos, clientes, outbox), meta y restablecer réplica
-├── sync/           motor (push + pull), manejadores de resultados, pull incremental, almacén SQLite, descarga inicial, backoff, disparadores
-├── features/       documentos (totales, precios, validaciones, PDF), productos
+├── sync/           motor (push + pull), manejadores de resultados, pull incremental, almacén SQLite, descarga inicial, backoff, disparadores, tarea en segundo plano
+├── features/       documentos (totales, precios, validaciones, PDF, línea de tiempo), productos, diagnóstico
 ├── ui/             componentes base
 └── vendor/         OpenAPI/tipos y dominio del ERP (generado: no editar)
 ```
@@ -71,6 +72,10 @@ El CI clona el ERP en el commit fijado y ejecuta la comprobación, de modo que l
 ```bash
 ERP_E2E_URL=http://127.0.0.1:3101 ERP_E2E_SUPER_EMAIL=superadmin@erp.local ERP_E2E_SUPER_PASSWORD='Admin12345!' pnpm test:int
 ```
+
+### Cifrado de la base (opcional)
+
+`SQLCIPHER=1` al compilar activa SQLCipher: la clave es aleatoria, se genera en el primer arranque y vive solo en el Keystore. **Valídelo en un teléfono real antes de usarlo en producción** (ver la guía de pruebas); por omisión está apagado.
 
 ### Base local
 

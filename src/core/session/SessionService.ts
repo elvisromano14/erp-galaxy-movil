@@ -7,7 +7,9 @@ import type { AuthService, CompanyChoice, Profile } from '../auth/AuthService';
 import type { Biometric } from '../auth/native';
 import { MAX_PIN_ATTEMPTS, type PinLock, shouldLock } from '../auth/PinLock';
 import { META, getJson, getMeta, setJson, setMeta } from '../../db/meta';
-import { wipeReplica } from '../../db/replica';
+import { wipeEverything, wipeReplica } from '../../db/replica';
+import { DAY_MS, POLICY } from '../config/policy';
+import { logger } from '../telemetry/log';
 import { outbox } from '../../db/schema';
 import type { AppDb } from '../../db/types';
 import { type BootstrapProgress, isBootstrapped, runBootstrap } from '../../sync/bootstrap';
@@ -82,9 +84,20 @@ export class SessionService {
     const online = await this.checkConfig();
     await this.d.auth.restoreDevice();
     if (this.state.status === 'blocked') return;
+    // Dispositivo revocado hace más de N días: se borra TODO (incluida la cola retenida) y se pide empezar de cero.
+    const revokedAt = getMeta(this.d.db, META.revokedAt);
+    if (revokedAt && this.now() - new Date(revokedAt).getTime() > POLICY.revokedOutboxRetentionDays * DAY_MS) { wipeEverything(this.d.db); logger.warn('session', 'Retención tras revocación vencida: datos locales borrados'); }
     const hasSession = !!(await this.d.tokens.getRefresh());
     const ready = this.d.auth.deviceId && getMeta(this.d.db, META.companyId) && getJson<string[]>(this.d.db, META.permissions);
     if (!hasSession || !ready) { this.set({ status: 'anonymous', online }); return; }
+    // Demasiado tiempo sin sincronizar: se exige conexión e inicio de sesión (datos y cola intactos).
+    const last = getMeta(this.d.db, META.lastSyncAt);
+    if (last && this.now() - new Date(last).getTime() > POLICY.maxOfflineDays * DAY_MS) {
+      await this.d.auth.logout();
+      logger.warn('session', `Más de ${POLICY.maxOfflineDays} días sin sincronizar: se exige iniciar sesión`);
+      this.set({ status: 'anonymous', online, error: `Pasaron más de ${POLICY.maxOfflineDays} días sin sincronizar: conéctese e inicie sesión. Sus pendientes se conservan.` });
+      return;
+    }
     const profile = getJson<Profile>(this.d.db, 'profile');
     this.set({ profile, permissions: getJson<string[]>(this.d.db, META.permissions) ?? [], deviceCode: getMeta(this.d.db, META.deviceCode), lastSyncAt: getMeta(this.d.db, META.lastSyncAt), online });
     this.refreshQueue();
@@ -169,6 +182,7 @@ export class SessionService {
   private proceedAfterUnlock() {
     this.set({ status: this.afterUnlock() });
     void this.refreshSession();
+    this.requestSync(1500); // recuperación al abrir: enviar lo pendiente y traer cambios
   }
 
   /** Recupera el access token en segundo plano; sin red se sigue operando con los datos locales. */
@@ -179,7 +193,7 @@ export class SessionService {
   /** Llamar al pasar la app a segundo plano / de vuelta a primer plano. */
   onBackground() { this.backgroundedAt = this.now(); }
   onForeground() {
-    if (this.state.status === 'ready' && shouldLock(this.backgroundedAt, this.now(), this.d.lockTimeoutMs ?? 5 * 60_000)) this.set({ status: 'locked' });
+    if (this.state.status === 'ready' && shouldLock(this.backgroundedAt, this.now(), this.d.lockTimeoutMs ?? POLICY.lockTimeoutMs)) this.set({ status: 'locked' });
     this.backgroundedAt = null;
   }
   lock() { if (this.state.status === 'ready') this.set({ status: 'locked' }); }
@@ -225,6 +239,7 @@ export class SessionService {
   }
 
   private syncFailed(e: unknown) {
+    logger.warn('sync', e instanceof Error ? e.message : 'error');
     if (e instanceof ApiError) {
       if (e.code === 'DEVICE_REVOKED') { this.blockRevoked(); return; }
       if (e.code === 'UPGRADE_REQUIRED') { this.set({ status: 'blocked', busy: false, blocked: { reason: 'UPGRADE_REQUIRED', message: e.message } }); return; }
@@ -255,12 +270,22 @@ export class SessionService {
   /** Dispositivo revocado: se borra la réplica; la cola de salida se conserva para que administración pueda rehabilitar el equipo. */
   private blockRevoked() {
     wipeReplica(this.d.db);
+    setMeta(this.d.db, META.revokedAt, new Date(this.now()).toISOString());
+    logger.warn('session', 'Dispositivo revocado por la administración');
     this.set({ status: 'blocked', busy: false, blocked: { reason: 'DEVICE_REVOKED', message: 'Este dispositivo fue revocado por la administración. Sus pendientes se conservan.' } });
   }
 
   // ───────────────── cierre de sesión ─────────────────
   pendingCount(): number {
     return this.d.db.select({ n: count() }).from(outbox).where(inArray(outbox.status, ['PENDING', 'SENDING', 'REVIEW'])).get()?.n ?? 0;
+  }
+
+  /** «Restablecer réplica»: borra catálogos, cursores y lo sincronizado y vuelve a descargar. NUNCA toca la cola ni lo pendiente. */
+  resetReplica(): void {
+    wipeReplica(this.d.db);
+    this.refreshQueue();
+    logger.info('session', 'Réplica restablecida por el usuario');
+    this.set({ status: 'needs-bootstrap', bootstrap: null, error: null, lastSyncAt: null });
   }
 
   /** Cierra la sesión (los datos locales y la cola se conservan). La pantalla debe advertir antes si `pendingCount() > 0`. */

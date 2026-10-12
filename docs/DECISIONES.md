@@ -43,3 +43,12 @@ Registro breve de lo decidido y por qué (formato ADR resumido). Las decisiones 
 | 37 | **Número provisional `OFF-{dispositivo}-{secuencia}`** con contador propio (`doc_seq`) en la misma transacción que el envío; se conserva al reeditar | Plan §7.5; el definitivo (`COT-V-…`) llega en el resultado del push |
 | 38 | **PDF local con `expo-print` + `expo-sharing`**, HTML con todo el texto escapado y aviso de número provisional | Funciona sin conexión; sin inyección de HTML desde datos del usuario |
 | 39 | **Lo ya enviado es de solo lectura**; rechazados y pendientes se editan; un rechazo se corrige y reenvía como operación nueva | Coincide con el servidor (solo edita borradores) y con el plan §10 |
+| 40 | **Pedido = `sales_order.create` (crea y confirma con reserva)**; desde una cotización viaja `sourceQuoteId`, y si la cotización venció se crea sin vínculo y con precios de la lista vigente (el servidor no convierte vencidas) | Coincide con el servidor y evita rechazos previsibles |
+| 41 | **Documento EN REVISIÓN (crédito)**: el servidor lo tiene en borrador; cuando administración lo resuelve, el pull lo pasa a SYNCED y cierra su operación | Si no, quedaría «en revisión» para siempre |
+| 42 | **Errores del servidor explicados en español con qué hacer** (`explainError`) | El vendedor sin señal ni soporte debe entender qué corregir |
+| 43 | **Tarea en segundo plano complementaria** (`expo-background-task`, ≥15 min): sincroniza sin bloquear ni borrar; no se confía en ella | Plan §7.1: fabricantes con ahorro agresivo de batería la matan |
+| 44 | **14 días sin sincronizar → login obligatorio; revocado → cola retenida 7 días y luego borrado total** (datos y cola intactos mientras tanto) | Plan §11 (inactividad y revocación) |
+| 45 | **Reloj desfasado**: una espera de reintento absurdamente lejana (reloj atrasado) se considera vencida | El teléfono con hora mal puesta no deja operaciones «dormidas» |
+| 46 | **SQLCipher opcional (`SQLCIPHER=1`), apagado por omisión** | Plan §11: no se activa a ciegas; se valida en el teléfono real (riesgo 1 del plan) |
+| 47 | **Telemetría depurada**: registro local en anillo y reportero externo enchufable (`setErrorReporter`); sin Sentry hasta definir DSN | Nunca salen correos, RIF, teléfonos ni tokens |
+| 48 | **Jest 29 / jest-expo** (versiones que fija el SDK 57), `expo-doctor` 21/21 | Dependencias compatibles con el SDK |
