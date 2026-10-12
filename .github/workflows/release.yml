@@ -24,7 +24,6 @@ jobs:
       APP_ENV: ${{ inputs.env || 'prod' }}
       VERSION_CODE: ${{ github.run_number }}
       GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false"
-      ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -38,7 +37,10 @@ jobs:
           for v in KEYSTORE_B64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
             [ -n "${!v}" ] || { echo "::error::Falta el secreto para $v (ver docs/LANZAMIENTO.md)"; exit 1; }
           done
-          echo "$KEYSTORE_B64" | base64 -d > "$ANDROID_KEYSTORE_PATH"
+          # (el contexto `runner` no existe en `env:` de nivel de trabajo: la ruta se fija aquí y se exporta a los pasos siguientes)
+          KS="$RUNNER_TEMP/release.keystore"
+          echo "$KEYSTORE_B64" | base64 -d > "$KS"
+          echo "ANDROID_KEYSTORE_PATH=$KS" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
