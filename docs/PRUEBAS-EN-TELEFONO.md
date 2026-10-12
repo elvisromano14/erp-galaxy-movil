@@ -12,7 +12,7 @@ pnpm install
 APP_ENV=prod pnpm exec expo run:android --device
 ```
 
-**Opción B — APK de depuración en GitHub:** Actions → *Android debug* → *Run workflow* (entorno `prod`); descargue el APK del artefacto e instálelo (permita «orígenes desconocidos»). *(El workflow aún no está verificado en GitHub.)*
+**Opción B — APK desde GitHub (la más simple):** Actions → *Android APK* → *Run workflow* (entorno `prod`); descargue el artefacto `erp-ventas-prod-apk`, descomprímalo e instale el `.apk` en el teléfono (permita «instalar apps de orígenes desconocidos»). Va firmado con una clave de pruebas: sirve para pilotos internos, no para Google Play.
 
 Variantes de entorno (`APP_ENV=dev|staging|prod`): instalan apps con nombre e id distintos, así que pueden convivir en el mismo teléfono. `dev` apunta a `10.0.2.2:3101` (emulador → ERP local).
 

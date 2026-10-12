@@ -1,0 +1,51 @@
+# APK instalable para pruebas (con el JavaScript incluido, sin servidor de desarrollo). Manual:
+# Actions → Android APK → Run workflow → descargar el artefacto «erp-ventas-<entorno>-apk».
+# Se firma con la clave de depuración que genera `expo prebuild`: sirve para PRUEBAS y pilotos internos, NO para Google Play
+# (para Play se necesita un keystore propio guardado como secreto; ver docs/PRUEBAS-EN-TELEFONO.md).
+name: Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: "Entorno (dev | staging | prod)"
+        default: prod
+      sqlcipher:
+        description: "Cifrar la base con SQLCipher (1 = sí; validar en un teléfono antes de producción)"
+        default: "0"
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      APP_ENV: ${{ inputs.env }}
+      SQLCIPHER: ${{ inputs.sqlcipher }}
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: pnpm install --frozen-lockfile
+      - name: Generar el proyecto Android (prebuild)
+        run: npx expo prebuild --platform android --no-install
+      - name: Compilar el APK de release
+        run: ./gradlew assembleRelease --no-daemon
+        working-directory: android
+      - name: Renombrar
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          mkdir -p dist-apk
+          cp android/app/build/outputs/apk/release/app-release.apk "dist-apk/erp-ventas-${APP_ENV}-${VERSION}.apk"
+          ls -la dist-apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: erp-ventas-${{ inputs.env }}-apk
+          path: dist-apk/*.apk
+          if-no-files-found: error
