@@ -14,7 +14,7 @@ export default function CustomerScreen() {
   const router = useRouter();
   const lastSync = useSession((st) => st.lastSyncAt);
   const [c, setC] = useState<CustomerDetail | null>(null);
-  useFocusEffect(useCallback(() => { setC(getCustomer(db, id)); }, [id]));
+  useFocusEffect(useCallback(() => { setC(id ? getCustomer(db, id) : null); }, [id]));
 
   if (!c) return <Screen><Muted>El cliente ya no está en este teléfono.</Muted></Screen>;
   const op = c.lastOp;

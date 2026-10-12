@@ -19,7 +19,7 @@ export default (): ExpoConfig => ({
   name: env === 'prod' ? 'ERP Ventas' : `ERP Ventas (${env})`,
   slug: 'erp-galaxy-movil',
   scheme: 'erpventas',
-  version: '0.1.0',
+  version: '0.1.1',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',

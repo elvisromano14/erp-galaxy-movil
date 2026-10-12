@@ -22,7 +22,7 @@ export default function DocumentDetail() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const canOrder = useAllPermissions('sales:orders:create', 'sales:orders:confirm');
-  useFocusEffect(useCallback(() => { setV(getDocument(db, id)); }, [id]));
+  useFocusEffect(useCallback(() => { setV(id ? getDocument(db, id) : null); }, [id]));
 
   if (!v) return <Screen><Muted>El documento ya no está en este teléfono.</Muted></Screen>;
   const d = v.doc;

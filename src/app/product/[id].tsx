@@ -10,7 +10,8 @@ import { fetchLiveStock } from '../../features/products/liveStock';
 import { Banner, Busy, Button, ErrorText, Muted, Screen, colors } from '../../ui/kit';
 
 export default function ProductDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const today = caracasToday();
   const detail = useMemo(() => getProductDetail(db, id, today), [id, today]);
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function ProductDetail() {
 
   async function loadLive() {
     setBusy(true); setError(null);
-    try { setLive(await fetchLiveStock(api, id)); } catch (e) { setError(session.reportError(e)); } finally { setBusy(false); }
+    try { setLive(await fetchLiveStock(api, id ?? '')); } catch (e) { setError(session.reportError(e)); } finally { setBusy(false); }
   }
 
   if (!detail) return <Screen><Muted>El producto ya no está en este teléfono.</Muted></Screen>;

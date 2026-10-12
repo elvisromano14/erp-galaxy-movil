@@ -75,7 +75,9 @@ export interface ProductDetail {
   stock: StockLine[];
 }
 
-export function getProductDetail(db: AppDb, id: string, today: string): ProductDetail | null {
+export function getProductDetail(db: AppDb, id: string | undefined, today: string): ProductDetail | null {
+  // drizzle omite en silencio un parámetro `undefined` (queda «WHERE p.id = » → SQLite: «incomplete input»): se valida antes.
+  if (typeof id !== 'string' || !id) return null;
   const p = db.all<{ id: string; sku: string; name: string; description: string | null; categoryName: string | null; unitCode: string | null; trackingMode: string; isService: number; taxName: string | null; taxRate: string | null }>(sql`
     SELECT p.id, p.sku, p.name, p.description, p.category_name AS categoryName, p.unit_code AS unitCode, p.tracking_mode AS trackingMode, p.is_service AS isService,
            t.name AS taxName, t.rate AS taxRate
