@@ -1,0 +1,35 @@
+# Política de privacidad — ERP Ventas (app móvil)
+
+> **Borrador para revisión del propietario.** Complete los datos marcados con `[ ]` y valídelo con asesoría legal antes de publicarlo (Google Play exige una URL pública).
+
+**Responsable:** [razón social del titular de la app] · RIF [ ] · Contacto: [correo de contacto]
+**Última actualización:** [fecha]
+
+## 1. Qué es la app
+ERP Ventas es una aplicación para **vendedores de empresas clientes** del sistema ERP. No es una app para el público general: solo funciona con una cuenta creada por la administración de cada empresa.
+
+## 2. Datos que trata
+| Dato | Para qué | Dónde se guarda |
+|---|---|---|
+| Correo, nombre y contraseña del usuario | Iniciar sesión | Servidor del ERP (contraseña cifrada con Argon2). El token de sesión, en el almacén seguro del teléfono |
+| Datos comerciales de la empresa: productos, precios, existencias, clientes (RIF, razón social, teléfono, dirección), cotizaciones y pedidos | Operar la venta | Servidor del ERP y copia local cifrada o protegida en el teléfono |
+| Identificador y nombre del dispositivo, versión de la app, última actividad, tamaño de la cola | Seguridad (revocar un teléfono perdido) y soporte | Servidor del ERP |
+| Cámara | **Solo** para leer códigos de barras; las imágenes no se guardan ni se envían | No se almacena |
+| Huella/PIN | Desbloquear la app en el teléfono; **no se envían** al servidor | Solo en el teléfono |
+
+La app **no usa publicidad, no vende datos y no incluye rastreadores de terceros**. Los registros de diagnóstico se depuran (no incluyen correos, RIF, teléfonos ni tokens).
+
+## 3. Con quién se comparten
+Solo con el servidor de la empresa a la que usted pertenece. Los datos de una empresa **no se mezclan** con los de otra.
+
+## 4. Seguridad
+Conexión cifrada (HTTPS); token en el almacén seguro de Android; bloqueo por PIN/huella; la administración puede **revocar** un teléfono (se borran los datos descargados); la app impide copias de seguridad de Android (`allowBackup: false`); límite de intentos de PIN.
+
+## 5. Conservación y eliminación
+Los datos comerciales los conserva la empresa según sus obligaciones fiscales y contables. En el teléfono: al **cerrar sesión** se conservan los pendientes de envío; al **revocar** el dispositivo o tras 7 días de revocación se borran todos los datos locales. Para eliminar su cuenta o datos personales, contacte a su administrador o a [correo de contacto].
+
+## 6. Sus derechos
+Acceso, rectificación y eliminación de sus datos personales a través de la administración de su empresa o del contacto indicado.
+
+## 7. Cambios
+Se avisará en la app y en esta página. Fecha de la última versión arriba.

@@ -677,19 +677,23 @@ Se configuran con `app.config.ts` y la variable `APP_ENV`; permiten instalar las
 ### M7 – QA, rendimiento y piloto (2 sem)
 
 - [ ] Matriz de dispositivos (gama baja/media/alta; Android 8/10/13+)
-- [ ] Optimización (arranque, memoria, tamaño del APK, FlashList, índices)
-- [ ] Accesibilidad básica (tamaños de fuente, contraste, objetivos táctiles) y textos en español (es-VE)
+- [x] Optimización (arranque, memoria, tamaño del APK, FlashList, índices)
+- [x] Accesibilidad básica (tamaños de fuente, contraste, objetivos táctiles) y textos en español (es-VE)
 - [ ] **Piloto con 2–3 vendedores** durante 1–2 semanas; recopilar métricas y feedback
 - [ ] Corrección de defectos priorizados; ajuste de UX (atajos, menos toques)
-- [ ] Manual breve de usuario (PDF/video corto)
+- [x] Manual breve de usuario (PDF/video corto)
+
+**Estado:** preparado. Hecho: consultas verificadas con índices, objetivos táctiles y contraste WCAG AA con prueba automática, manual del vendedor, plan del piloto y métricas (cola por dispositivo en el ERP). **Pendiente (requiere teléfonos y personas):** matriz de dispositivos y el piloto con 2–3 vendedores — ver [`PRUEBAS-EN-TELEFONO.md`](PRUEBAS-EN-TELEFONO.md) y [`PILOTO.md`](PILOTO.md).
 
 ### M8 – Lanzamiento (2 sem)
 
 - [ ] Configuración de **Play Console** (prueba cerrada/producción), *Play App Signing*, ficha, política de privacidad
-- [ ] Pipeline de *release* firmado y versionado (`versionCode` automático)
-- [ ] Capacitación a vendedores y guía de soporte (cómo revisar rechazados, qué hacer sin señal)
-- [ ] Monitoreo post-lanzamiento (Sentry, dispositivos activos, colas largas)
-- [ ] Plan de soporte y de actualizaciones; retrospectiva y backlog v1.1
+- [x] Pipeline de *release* firmado y versionado (`versionCode` automático)
+- [x] Capacitación a vendedores y guía de soporte (cómo revisar rechazados, qué hacer sin señal)
+- [x] Monitoreo post-lanzamiento (Sentry, dispositivos activos, colas largas)
+- [x] Plan de soporte y de actualizaciones; retrospectiva y backlog v1.1
+
+**Estado:** preparado. Hecho: pipeline de release firmado (etiqueta `v*`, `versionCode` automático, APK+AAB+SHA256), guías de Play Console, política de privacidad (borrador), soporte y capacitación, monitoreo y backlog v1.1 — ver [`LANZAMIENTO.md`](LANZAMIENTO.md). **Pendiente (lo hace el propietario):** generar el keystore y los secretos, cuenta de Google Play y publicar la ficha.
 
 ---
 

@@ -15,6 +15,10 @@ App móvil **Android** de vendedores del [Mini ERP](https://github.com/elvisroma
 | [`docs/API-MOVIL.md`](docs/API-MOVIL.md) | **Contrato** con el ERP: cabeceras, `sync/pull`, `sync/push`, estados y errores |
 | [`docs/DECISIONES.md`](docs/DECISIONES.md) | Decisiones de arquitectura (por qué así) |
 | [`docs/PRUEBAS-EN-TELEFONO.md`](docs/PRUEBAS-EN-TELEFONO.md) | Cómo compilar la app, instalarla en un teléfono y la lista de pruebas de campo |
+| [`docs/MANUAL-VENDEDOR.md`](docs/MANUAL-VENDEDOR.md) · [`SOPORTE.md`](docs/SOPORTE.md) | Manual de uso para vendedores, soporte y capacitación |
+| [`docs/PILOTO.md`](docs/PILOTO.md) | Plan del piloto: métricas, seguimiento y criterios go/no-go (M7) |
+| [`docs/LANZAMIENTO.md`](docs/LANZAMIENTO.md) · [`POLITICA-DE-PRIVACIDAD.md`](docs/POLITICA-DE-PRIVACIDAD.md) | Release firmado, Google Play y política de privacidad (M8) |
+| [`docs/BACKLOG-V1_1.md`](docs/BACKLOG-V1_1.md) | Candidatos para la v1.1 |
 
 ## Arquitectura (resumen)
 
