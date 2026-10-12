@@ -36,3 +36,10 @@ Registro breve de lo decidido y por qué (formato ADR resumido). Las decisiones 
 | 30 | **El vendedor edita solo clientes propios sin validar**; el RIF no se cambia; un alta rechazada se corrige y se reenvía como alta nueva | Coincide con la regla del servidor (`CUSTOMER_LOCKED`) |
 | 31 | **UUID v7 propio** (`uuidv7()`, sin dependencia `uuid`) sobre `crypto.getRandomValues` | Ids ordenables por tiempo generados en el dispositivo; una dependencia menos |
 | 32 | **Restablecer réplica conserva los clientes locales sin confirmar** (y siempre el outbox) | No se pierde trabajo del vendedor |
+| 33 | **Totales en el teléfono con el dominio compartido** (`calcDocument`: IVA por línea, half-up a 4 decimales); verificado contra el servidor en integración | Riesgo 8 del plan: la cotización del teléfono y la del servidor no deben diferir |
+| 34 | **Moneda del documento = moneda de la lista de precios del cliente (o la predeterminada)**; sin conversión local de listas | Mismo criterio del servidor (`effectivePriceList`); evita discrepancias de redondeo |
+| 35 | **Sin permiso para editar precios el teléfono NO envía `unitPrice`**; el servidor toma la lista vigente | La política se aplica en el servidor; el teléfono solo estima |
+| 36 | **Borrador autoguardado** (al editar, al ir a segundo plano y al salir) con cliente vacío permitido; «Guardar y enviar» valida y encola en la misma transacción | El vendedor no pierde trabajo y el envío es atómico |
+| 37 | **Número provisional `OFF-{dispositivo}-{secuencia}`** con contador propio (`doc_seq`) en la misma transacción que el envío; se conserva al reeditar | Plan §7.5; el definitivo (`COT-V-…`) llega en el resultado del push |
+| 38 | **PDF local con `expo-print` + `expo-sharing`**, HTML con todo el texto escapado y aviso de número provisional | Funciona sin conexión; sin inyección de HTML desde datos del usuario |
+| 39 | **Lo ya enviado es de solo lectura**; rechazados y pendientes se editan; un rechazo se corrige y reenvía como operación nueva | Coincide con el servidor (solo edita borradores) y con el plan §10 |

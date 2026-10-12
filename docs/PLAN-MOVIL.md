@@ -625,15 +625,17 @@ Se configuran con `app.config.ts` y la variable `APP_ENV`; permiten instalar las
 
 **Objetivo:** editor de documentos y cotizaciones completas.
 
-- [ ] **`DocumentEditor`**: cliente, líneas, condiciones, totales en vivo (`packages/domain`)
-- [ ] Agregar líneas desde buscador, escáner y detalle de producto
-- [ ] Políticas de `app_settings` (edición de precio, descuento máximo)
-- [ ] Validaciones bloqueantes y avisos (stock, crédito, tasa antigua)
-- [ ] Numeración provisional `OFF-…`
-- [ ] Autoguardado de borradores; estados locales
-- [ ] Listado de cotizaciones, detalle, duplicar
-- [ ] **PDF compartible** (`expo-print` + `expo-sharing`) con datos de la empresa
-- [ ] Push de `sales_quote` y reflejo de número definitivo
+- [x] **`DocumentEditor`**: cliente, líneas, condiciones, totales en vivo (`packages/domain`)
+- [x] Agregar líneas desde buscador, escáner y detalle de producto
+- [x] Políticas de `app_settings` (edición de precio, descuento máximo)
+- [x] Validaciones bloqueantes y avisos (stock, crédito, tasa antigua)
+- [x] Numeración provisional `OFF-…`
+- [x] Autoguardado de borradores; estados locales
+- [x] Listado de cotizaciones, detalle, duplicar
+- [x] **PDF compartible** (`expo-print` + `expo-sharing`) con datos de la empresa
+- [x] Push de `sales_quote` y reflejo de número definitivo
+
+**Estado: implementado y verificado** (pruebas unitarias e integración contra el ERP real: totales idénticos a los del servidor, número definitivo y cliente creado sin conexión usado en el mismo lote; pendiente probar el PDF y el editor en un teléfono físico).
 
 **Aceptación:** una cotización de 30 líneas se crea sin red, se comparte en PDF y, al sincronizar, muestra su número definitivo.
 

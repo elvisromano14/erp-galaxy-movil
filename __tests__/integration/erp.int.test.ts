@@ -16,7 +16,11 @@ import { defaultCurrency, findByCode, getProductDetail, searchProducts } from '.
 import { fetchLiveStock } from '../../src/features/products/liveStock';
 import { caracasToday } from '../../src/core/format';
 import { createCustomerLocal, updateCustomerLocal } from '../../src/db/repositories/customers';
+import { getDocument, saveDraft, submitDocument } from '../../src/db/repositories/documents';
+import { computeTotals } from '../../src/features/documents/calc';
+import { priceListFor, priceOf, productForLine } from '../../src/features/documents/pricing';
 import { outbox } from '../../src/db/schema';
+import { salesDocuments } from '../../src/db/schema';
 import { customers, productPrices, productRefs, products, stockSnapshots, taxes, warehouses } from '../../src/db/schema';
 import { META, getJson, getMeta } from '../../src/db/meta';
 import { memoryPin, memoryTokens, nodeHasher } from '../helpers';
@@ -176,6 +180,43 @@ run('Integración con el ERP real', () => {
     await m.engine.run();
     expect(await serverCustomers(`${tag} Corregido`)).toHaveLength(1);
     expect(m.session.pendingCount()).toBe(0);
+  });
+
+  it('M4: cotización creada sin conexión con un cliente nuevo → se envía en orden; los totales locales COINCIDEN con los del servidor; número definitivo y refresco por pull', async () => {
+    const m = first; const tag = `M4 ${rnd}`;
+    const today = caracasToday();
+    // cliente nuevo sin conexión + cotización que lo usa (el servidor resuelve el id local)
+    const cust = createCustomerLocal(m.db, { rif: newRif(), legalName: `${tag} Cliente nuevo` });
+    const list = priceListFor(m.db, cust.id)!;
+    const prods = m.db.select().from(products).all().filter((p) => p.sku === 'INT-001' || p.sku === 'INT-002');
+    const mk = (sku: string, qty: string, disc: string) => {
+      const p = prods.find((x) => x.sku === sku)!; const info = productForLine(m.db, p.id)!;
+      return { productId: p.id, sku: p.sku, description: null, quantity: qty, unitPrice: priceOf(m.db, p.id, list.id, today)!, discountPct: disc, taxId: info.taxId, taxRate: info.taxRate };
+    };
+    const lines = [mk('INT-001', '2', '5'), mk('INT-002', '3', '0')];
+    const id = saveDraft(m.db, { docType: 'QUOTE', customerId: cust.id, currencyId: list.currencyId, paymentCondition: 'CASH', creditDays: 0, validUntil: '2026-12-31', notes: 'Cotización de integración', warehouseId: null, lines });
+    submitDocument(m.db, id);
+    const local = getDocument(m.db, id)!;
+    expect(local.doc).toMatchObject({ localStatus: 'PENDING_SYNC', localNumber: expect.stringMatching(/^OFF-D\d{2}-\d{6}$/), total: '78.8800' });
+    expect(computeTotals(lines.map((l) => ({ ...l, taxExempt: false }))).total).toBe('78.8800');
+
+    const r = await m.engine.run();
+    expect(r).toMatchObject({ rejected: 0, offline: false });
+    const synced = getDocument(m.db, id)!;
+    expect(synced.doc).toMatchObject({ localStatus: 'SYNCED', serverStatus: 'SENT', serverNumber: expect.stringMatching(/^COT-V-\d{6}$/) });
+    expect(synced.displayNumber).toBe(synced.doc.serverNumber);
+    // paridad de cálculo móvil/servidor (plan §16, riesgo 8)
+    const server = await admin(adminToken, 'GET', `/sales/quotes/${synced.doc.serverId}`);
+    expect(Number(server.subtotal)).toBe(Number(local.doc.subtotal)); expect(Number(server.taxTotal)).toBe(Number(local.doc.taxTotal)); expect(Number(server.total)).toBe(Number(local.doc.total));
+    expect(server.sellerId).toBe(sellerId); expect(server.status).toBe('SENT');
+    // el cliente nuevo ya está en el servidor y la cotización apunta a él
+    const serverCustomer = (await serverCustomers(`${tag} Cliente nuevo`))[0];
+    expect(server.customerId).toBe(serverCustomer.id);
+    expect(m.db.select().from(customers).all().some((c) => c.id === serverCustomer.id && !c.isLocal)).toBe(true);
+    expect(synced.doc.customerId).toBe(serverCustomer.id); // documentos locales re-apuntados al cliente del servidor
+    // el pull de «mis documentos» no la pisa ni la duplica
+    await m.engine.run();
+    expect(m.db.select().from(salesDocuments).all().filter((d) => d.serverId === synced.doc.serverId)).toHaveLength(1);
   });
 
   it('un segundo teléfono del mismo vendedor es rechazado; al revocar el primero, este se bloquea y el segundo ya puede registrarse', async () => {

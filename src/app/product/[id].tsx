@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import type { LiveStock } from '../../core/api/contract';
@@ -13,7 +13,9 @@ export default function ProductDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const today = caracasToday();
   const detail = useMemo(() => getProductDetail(db, id, today), [id, today]);
+  const router = useRouter();
   const canLive = usePermission('inventory:stock:read');
+  const canQuote = usePermission('sales:quotes:create');
   const online = useSession((st) => st.online);
   const [live, setLive] = useState<LiveStock | null>(null);
   const [busy, setBusy] = useState(false);
@@ -31,6 +33,7 @@ export default function ProductDetail() {
     <Screen scroll>
       <Stack.Screen options={{ title: detail.sku }} />
       <Text style={s.name}>{detail.name}</Text>
+      {canQuote && <Button title="Nueva cotización con este producto" onPress={() => router.push({ pathname: '/document/editor', params: { addProductId: detail.id } })} />}
       <Muted>{[detail.categoryName, detail.unitCode, detail.tax ? `${detail.tax.name}` : 'Sin impuesto'].filter(Boolean).join(' · ')}</Muted>
       {detail.description ? <Text style={{ color: colors.text }}>{detail.description}</Text> : null}
 

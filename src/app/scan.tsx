@@ -1,5 +1,6 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { pick } from '../features/documents/pickerStore';
 import { useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { db } from '../core/services';
@@ -11,6 +12,7 @@ const TYPES = ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'code93',
 /** Escáner de códigos de barras (cámara). Los lectores Bluetooth/Zebra funcionan como teclado en el buscador. */
 export default function Scan() {
   const router = useRouter();
+  const { pick: picking } = useLocalSearchParams<{ pick?: string }>();
   const [permission, requestPermission] = useCameraPermissions();
   const [notFound, setNotFound] = useState<string | null>(null);
   const handling = useRef(false); // evita procesar varias lecturas del mismo código
@@ -31,6 +33,7 @@ export default function Scan() {
     if (handling.current) return;
     handling.current = true;
     const hit = findByCode(db, data);
+    if (hit && picking) { pick('product', hit.id); router.dismissAll(); return; }
     if (hit) { router.replace({ pathname: '/product/[id]', params: { id: hit.id } }); return; }
     setNotFound(data);
   }

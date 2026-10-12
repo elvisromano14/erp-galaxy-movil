@@ -1,4 +1,5 @@
 import { remapCustomer } from '../db/repositories/customers';
+import { salesDocHandler } from './docHandlers';
 import type { ResultHandler } from './SyncEngine';
 
 /** Resultados por entidad. Clientes (M3); cotizaciones y pedidos se agregan en M4 y M5. */
@@ -9,4 +10,4 @@ export const customerHandler: ResultHandler = {
   },
 };
 
-export const defaultHandlers = { customer: customerHandler };
+export const defaultHandlers = { customer: customerHandler, sales_quote: salesDocHandler, sales_order: salesDocHandler };

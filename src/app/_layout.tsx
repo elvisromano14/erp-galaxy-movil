@@ -44,6 +44,10 @@ function Gate() {
       <Stack.Screen name="product/[id]" options={{ headerShown: true, title: 'Producto' }} />
       <Stack.Screen name="customer/[id]" options={{ headerShown: true, title: 'Cliente' }} />
       <Stack.Screen name="customer/form" options={{ headerShown: true, title: 'Cliente' }} />
+      <Stack.Screen name="document/editor" options={{ headerShown: true, title: 'Cotización' }} />
+      <Stack.Screen name="document/[id]" options={{ headerShown: true, title: 'Cotización' }} />
+      <Stack.Screen name="document/pick-customer" options={{ headerShown: true, title: 'Elegir cliente', presentation: 'modal' }} />
+      <Stack.Screen name="document/pick-product" options={{ headerShown: true, title: 'Agregar producto', presentation: 'modal' }} />
       <Stack.Screen name="sync" options={{ headerShown: true, title: 'Sincronización' }} />
       <Stack.Screen name="scan" options={{ headerShown: true, title: 'Escanear código', presentation: 'modal' }} />
     </Stack>
