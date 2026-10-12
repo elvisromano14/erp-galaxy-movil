@@ -8,6 +8,13 @@
       "when": 1791697506827,
       "tag": "0000_living_madelyne_pryor",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791765759183,
+      "tag": "0001_moaning_iron_monger",
+      "breakpoints": true
     }
   ]
 }

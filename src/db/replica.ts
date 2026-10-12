@@ -2,7 +2,7 @@ import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { AppDb } from './types';
 import { META, deleteMeta } from './meta';
 import {
-  appSettings, customers, exchangeRates, priceLists, productPrices, productRefs, products, salesDocumentLines, salesDocuments, stockSnapshots, taxes, warehouses,
+  appSettings, currencies, customers, exchangeRates, priceLists, productPrices, productRefs, products, salesDocumentLines, salesDocuments, stockSnapshots, taxes, warehouses,
 } from './schema';
 import { PULL_ORDER } from '../core/api/contract';
 
@@ -12,7 +12,7 @@ import { PULL_ORDER } from '../core/api/contract';
  */
 export function wipeReplica(db: AppDb): void {
   db.transaction((tx) => {
-    for (const t of [productRefs, productPrices, products, stockSnapshots, warehouses, customers, taxes, exchangeRates, priceLists, appSettings]) tx.delete(t).run();
+    for (const t of [productRefs, productPrices, products, stockSnapshots, warehouses, customers, taxes, exchangeRates, priceLists, currencies, appSettings]) tx.delete(t).run();
     const synced = tx.select({ id: salesDocuments.id }).from(salesDocuments).where(or(eq(salesDocuments.localStatus, 'SYNCED'), isNull(salesDocuments.localStatus))).all().map((r) => r.id);
     if (synced.length) {
       for (let i = 0; i < synced.length; i += 500) {

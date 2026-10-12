@@ -2,7 +2,9 @@
 
 App móvil **Android** de vendedores del [Mini ERP](https://github.com/elvisromano14/erp-galaxy) (multiempresa, Venezuela): consulta de productos y existencias, clientes, **cotizaciones y pedidos de venta**, con operación **offline-first** (la UI trabaja siempre contra SQLite; la red solo sincroniza).
 
-> **Estado: M1 – acceso, dispositivo y descarga inicial.** Login → empresa → registro de dispositivo → PIN/huella → descarga inicial reanudable del catálogo a SQLite → sincronización incremental, con bloqueo por inactividad, dispositivo revocado y versión mínima. Verificado también contra la API real del ERP. Las pantallas de negocio (productos, clientes, cotizaciones, pedidos) llegan en M2+ (ver [plan](docs/PLAN-MOVIL.md#14-plan-por-sprints-m0m8)).
+> **Estado: M2 – productos y existencias.** Acceso (login → empresa → dispositivo → PIN/huella), descarga inicial reanudable a SQLite y sincronización incremental (M1), más el catálogo local: búsqueda por SKU, nombre, OEM/equivalentes y código de barras (teclado o cámara), detalle con precios por lista, impuesto y existencias por depósito, y existencia en vivo sin costos. Verificado también contra la API real del ERP. Siguen clientes (M3), cotizaciones (M4) y pedidos (M5) — ver el [plan](docs/PLAN-MOVIL.md#14-plan-por-sprints-m0m8).
+>
+> **En stand by:** enlace de descarga de la app dentro de Configuración del ERP (se hará cuando haya un APK de release firmado).
 
 ## Documentación
 

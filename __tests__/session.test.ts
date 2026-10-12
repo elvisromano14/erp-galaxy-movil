@@ -128,7 +128,7 @@ describe('SessionService', () => {
   it('descarga reanudable: un corte a mitad conserva el cursor y al reintentar continúa donde quedó', async () => {
     const srv = server({ failPullAfter: 7 }); // app_settings…customers (5) + 1.ª página de productos (6) + 2.ª (7) → falla en la 8.ª llamada
     const t = setup(srv); await t.session.start(); await t.session.login('v@x.test', 'x'); await t.session.setPin('1234');
-    srv.state.failAfter = 7; // 6 entidades previas + 1.ª página de productos; la siguiente llamada falla
+    srv.state.failAfter = 8; // 7 entidades previas + 1.ª página de productos; la siguiente llamada falla
     await t.session.bootstrap();
     expect(t.session.state).toMatchObject({ status: 'needs-bootstrap', online: false }); expect(t.session.state.error).toContain('Sin conexión');
     expect(t.db.select({ n: count() }).from(products).get()!.n).toBe(2);

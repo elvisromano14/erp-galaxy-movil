@@ -77,6 +77,10 @@ export const exchangeRates = sqliteTable('exchange_rates', {
   id: text('id').primaryKey(), currencyId: text('currency_id').notNull(), rate: text('rate').notNull(), date: text('date').notNull(), source: text('source').notNull(),
 });
 
+export const currencies = sqliteTable('currencies', {
+  id: text('id').primaryKey(), code: text('code').notNull(), name: text('name').notNull(), symbol: text('symbol').notNull(), decimals: integer('decimals').notNull().default(2),
+});
+
 export const priceLists = sqliteTable('price_lists', {
   id: text('id').primaryKey(), code: text('code').notNull(), name: text('name').notNull(), currencyId: text('currency_id').notNull(), isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
 });

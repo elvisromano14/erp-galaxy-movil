@@ -3,7 +3,7 @@ import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { PullEntity, PullPage } from '../core/api/contract';
 import { META, getMeta, setMeta, setJson } from '../db/meta';
 import {
-  appSettings, customers, exchangeRates, priceLists, productPrices, productRefs, products, salesDocumentLines, salesDocuments, stockSnapshots, taxes, warehouses,
+  appSettings, currencies, customers, exchangeRates, priceLists, productPrices, productRefs, products, salesDocumentLines, salesDocuments, stockSnapshots, taxes, warehouses,
 } from '../db/schema';
 import type { AppDb } from '../db/types';
 import { normalizeText } from './normalize';
@@ -40,6 +40,7 @@ export class SqlitePullStore implements PullStore {
       const items = page.items as Item[];
       switch (page.entity) {
         case 'app_settings': this.settings(db, items); break;
+        case 'currencies': this.replaceAll(db, currencies, items.map((i) => ({ id: i.id, code: i.code, name: i.name, symbol: i.symbol, decimals: i.decimals ?? 2 })), 5); break;
         case 'taxes': this.replaceAll(db, taxes, items.filter((i) => !i.deletedAt && i.isActive !== false).map((i) => ({
           id: i.id, code: i.code, name: i.name, kind: i.kind, rate: String(i.rate), validFrom: day(i.validFrom), validTo: i.validTo ? day(i.validTo) : null })), 7); break;
         case 'price_lists': this.replaceAll(db, priceLists, items.filter((i) => !i.deletedAt).map((i) => ({

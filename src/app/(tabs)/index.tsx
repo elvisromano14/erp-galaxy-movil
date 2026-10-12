@@ -1,7 +1,7 @@
 import { Alert } from 'react-native';
-import { session } from '../core/services';
-import { useSession } from '../core/session/hooks';
-import { Banner, Busy, Button, ErrorText, Muted, Screen, Title } from '../ui/kit';
+import { session } from '../../core/services';
+import { useSession } from '../../core/session/hooks';
+import { Banner, Busy, Button, ErrorText, Muted, Screen, Title } from '../../ui/kit';
 
 /** Inicio (M1): estado de la sesión y de la sincronización. Los módulos de negocio llegan en M2+. */
 export default function Home() {

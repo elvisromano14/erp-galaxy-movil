@@ -15,6 +15,8 @@ const ROUTE: Record<Exclude<SessionStatus, 'booting'>, string> = {
   anonymous: '/login', 'needs-company': '/company', 'needs-pin': '/pin-setup', locked: '/unlock', 'needs-bootstrap': '/bootstrap', ready: '/', blocked: '/blocked',
 };
 
+const GATES = ['/login', '/company', '/pin-setup', '/unlock', '/bootstrap', '/blocked'];
+
 function Gate() {
   const status = useSession((s) => s.status);
   const router = useRouter();
@@ -28,13 +30,19 @@ function Gate() {
   useEffect(() => {
     if (status === 'booting') return;
     const target = ROUTE[status];
-    const here = `/${(segments as string[]).join('/')}`;
-    if (here !== target) router.replace(target as never);
+    // los grupos de rutas «(tabs)» no forman parte de la ruta visible
+    const here = `/${(segments as string[]).filter((x) => !x.startsWith('(')).join('/')}`;
+    // Listo: cualquier pantalla de la app es válida; solo se sale de las de acceso (login, PIN, descarga…).
+    const ok = status === 'ready' ? !GATES.includes(here) : here === target;
+    if (!ok) router.replace(target as never);
   }, [status, segments, router]);
 
   if (status === 'booting') return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator /></View>;
   return (
-    <Stack screenOptions={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="product/[id]" options={{ headerShown: true, title: 'Producto' }} />
+      <Stack.Screen name="scan" options={{ headerShown: true, title: 'Escanear código', presentation: 'modal' }} />
+    </Stack>
   );
 }
 

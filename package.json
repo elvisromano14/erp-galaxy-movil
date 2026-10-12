@@ -21,6 +21,7 @@
     "node": ">=24"
   },
   "dependencies": {
+    "@shopify/flash-list": "2.0.2",
     "decimal.js": "^10.6.0",
     "drizzle-orm": "^0.45.4",
     "expo": "~57.0.27",

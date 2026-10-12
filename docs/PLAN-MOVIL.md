@@ -591,14 +591,16 @@ Se configuran con `app.config.ts` y la variable `APP_ENV`; permiten instalar las
 
 **Objetivo:** consulta de catálogo y existencias, totalmente offline.
 
-- [ ] Repositorio y pull incremental de `products`, `product_refs`, `product_prices`, `price_lists`, `taxes`, `exchange_rates`, `warehouses`, `stock_snapshots`
-- [ ] Búsqueda FTS5 (SKU/nombre/OEM/barcode) con normalización de tildes
-- [ ] Lista de productos (FlashList) + filtros por instancia
-- [ ] **Escáner de código de barras** (`expo-camera`) y soporte de lector tipo teclado
-- [ ] Detalle de producto: precios por lista, impuesto, equivalentes, stock por depósito con antigüedad
-- [ ] **Stock en vivo** (`GET /inventory/stock`) con manejo de error/sin red
-- [ ] Indicador de sincronización y "Sincronizar ahora"
-- [ ] Pruebas de rendimiento con 50 000 productos
+- [x] Repositorio y pull incremental de `products`, `product_refs`, `product_prices`, `price_lists`, `taxes`, `exchange_rates`, `warehouses`, `stock_snapshots`
+- [x] Búsqueda FTS5 (SKU/nombre/OEM/barcode) con normalización de tildes
+- [x] Lista de productos (FlashList) + filtros por instancia
+- [x] **Escáner de código de barras** (`expo-camera`) y soporte de lector tipo teclado
+- [x] Detalle de producto: precios por lista, impuesto, equivalentes, stock por depósito con antigüedad
+- [x] **Stock en vivo** (`GET /inventory/stock`) con manejo de error/sin red
+- [x] Indicador de sincronización y "Sincronizar ahora"
+- [x] Pruebas de rendimiento con 50 000 productos
+
+**Estado: implementado y verificado** (SQLite real con 50 000 productos: búsqueda en 4–8 ms; integración contra el ERP real; pendiente probar cámara/escáner en teléfono físico). Notas: la búsqueda usa `search_text` + `LIKE` (decisión #23) y el filtro «por instancia» se sustituye por «solo con existencia».
 
 **Aceptación:** búsqueda < 200 ms con 50 000 productos; un cambio de precio hecho en la web aparece en el teléfono tras un pull.
 

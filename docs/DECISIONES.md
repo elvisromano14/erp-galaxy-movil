@@ -25,3 +25,7 @@ Registro breve de lo decidido y por qué (formato ADR resumido). Las decisiones 
 | 19 | **Dispositivo revocado**: se borra la réplica y se conserva el outbox | Administración puede rehabilitar el equipo o recuperar lo pendiente |
 | 20 | **Páginas de pull atómicas**: datos + cursor en una transacción SQLite; lápidas de clientes/productos = inactivo, no borrado | Reanudable sin huecos; los documentos locales no quedan huérfanos |
 | 21 | **Pruebas con SQLite real** (better-sqlite3 + las migraciones reales) y **de integración contra la API real del ERP** | Detecta divergencias de contrato que un simulador no ve |
+| 22 | **Existencia en vivo por un endpoint propio sin costos** (`GET /sync/stock/:productId`); el `/products/:id/stock` del ERP incluye el costo promedio y no se usa desde el móvil | Plan §11: los costos nunca se descargan al teléfono |
+| 23 | **Búsqueda con `search_text` normalizado + `LIKE`** (palabras en AND) en lugar de FTS5; SKU exacto y código de barras con índice | Medido con 50 000 productos: 4–8 ms en Node (objetivo 200 ms en un gama media-baja); evita depender de FTS5 en Expo. Se revisa si el dispositivo real no cumple |
+| 24 | **Precio vigente por lista = mayor `validFrom ≤ hoy` (hora de Caracas)**; los precios se muestran sin impuesto con la nota del IVA | Mismo criterio que el servidor; el IVA se calcula en el documento |
+| 25 | **Monedas como entidad de la sincronización** (código, símbolo, decimales) | Mostrar `$` / `Bs` correctamente sin suponer la moneda |

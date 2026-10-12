@@ -10,6 +10,9 @@ import { AuthService, type DeviceStore } from '../../src/core/auth/AuthService';
 import { PinLock } from '../../src/core/auth/PinLock';
 import { SessionService } from '../../src/core/session/SessionService';
 import { versionLt } from '../../src/core/version';
+import { defaultCurrency, findByCode, getProductDetail, searchProducts } from '../../src/db/repositories/products';
+import { fetchLiveStock } from '../../src/features/products/liveStock';
+import { caracasToday } from '../../src/core/format';
 import { customers, productPrices, productRefs, products, stockSnapshots, taxes, warehouses } from '../../src/db/schema';
 import { META, getJson, getMeta } from '../../src/db/meta';
 import { memoryPin, memoryTokens, nodeHasher } from '../helpers';
@@ -93,6 +96,19 @@ run('Integración con el ERP real', () => {
     // ajustes y políticas del vendedor
     const settings = getJson<any>(m.db, 'seller'); expect(settings).toMatchObject({ code: 'V01' });
     expect(getMeta(m.db, META.companyId)).toBe(companyId); expect(getMeta(m.db, META.bootstrapDoneAt)).not.toBeNull();
+
+    // M2: búsqueda local, precios con moneda y existencia en vivo (sin costos) contra el servidor real
+    const today = caracasToday();
+    const hits = searchProducts(m.db, { query: 'oem-int-001', today });
+    expect(hits).toHaveLength(1); expect(hits[0]).toMatchObject({ sku: 'INT-001', price: '20', available: 10 });
+    expect(findByCode(m.db, '7501001')?.sku).toBe('INT-001'); // código de barras
+    expect(defaultCurrency(m.db)).toMatchObject({ code: 'USD', symbol: '$' });
+    const detail = getProductDetail(m.db, hits[0].id, today)!;
+    expect(detail.prices[0]).toMatchObject({ listCode: 'MAY', currencyCode: 'USD', price: '20' });
+    expect(detail.tax).toMatchObject({ rate: '16' }); expect(detail.stock[0]).toMatchObject({ quantity: '10', reserved: '0' });
+    const live = await fetchLiveStock(m.api, hits[0].id);
+    expect(live.warehouses[0]).toMatchObject({ quantity: '10', available: '10' });
+    expect(JSON.stringify(live)).not.toMatch(/cost/i);
 
     // sincronización incremental sin cambios: no baja nada nuevo; con un cambio en el servidor, lo trae
     const before = n(products);

@@ -213,6 +213,20 @@ export class SessionService {
     this.set({ busy: false, error: msg(e) });
   }
 
+  /**
+   * Para llamadas sueltas a la API (p. ej. existencia en vivo): si el error bloquea la app (dispositivo revocado, versión obsoleta)
+   * aplica el bloqueo; devuelve siempre un mensaje comprensible para mostrar.
+   */
+  reportError(e: unknown): string {
+    if (e instanceof ApiError) {
+      if (e.code === 'DEVICE_REVOKED') { this.blockRevoked(); return e.message; }
+      if (e.code === 'UPGRADE_REQUIRED') { this.set({ status: 'blocked', blocked: { reason: 'UPGRADE_REQUIRED', message: e.message } }); return e.message; }
+      if (e.status === 401 && this.state.status === 'anonymous') return 'Su sesión venció: inicie sesión de nuevo.';
+      if (e.isRetryable || e.status === 401) { this.set({ online: false }); return 'Sin conexión con el servidor.'; }
+    }
+    return msg(e);
+  }
+
   /** Dispositivo revocado: se borra la réplica; la cola de salida se conserva para que administración pueda rehabilitar el equipo. */
   private blockRevoked() {
     wipeReplica(this.d.db);
