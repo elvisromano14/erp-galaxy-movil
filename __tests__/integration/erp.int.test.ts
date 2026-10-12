@@ -9,10 +9,14 @@ import { ApiClient } from '../../src/core/api/ApiClient';
 import { AuthService, type DeviceStore } from '../../src/core/auth/AuthService';
 import { PinLock } from '../../src/core/auth/PinLock';
 import { SessionService } from '../../src/core/session/SessionService';
+import { defaultHandlers } from '../../src/sync/handlers';
+import { SyncEngine } from '../../src/sync/SyncEngine';
 import { versionLt } from '../../src/core/version';
 import { defaultCurrency, findByCode, getProductDetail, searchProducts } from '../../src/db/repositories/products';
 import { fetchLiveStock } from '../../src/features/products/liveStock';
 import { caracasToday } from '../../src/core/format';
+import { createCustomerLocal, updateCustomerLocal } from '../../src/db/repositories/customers';
+import { outbox } from '../../src/db/schema';
 import { customers, productPrices, productRefs, products, stockSnapshots, taxes, warehouses } from '../../src/db/schema';
 import { META, getJson, getMeta } from '../../src/db/meta';
 import { memoryPin, memoryTokens, nodeHasher } from '../helpers';
@@ -20,6 +24,14 @@ import { createTestDb } from '../testDb';
 
 const URL_ = process.env.ERP_E2E_URL;
 const run = URL_ ? describe : describe.skip;
+
+/** Red con fallos programables: `loseNext` descarta la respuesta de los próximos push (el servidor SÍ los procesó). */
+const net = { loseNext: 0 };
+const flaky: typeof fetch = async (input, init) => {
+  const res = await fetch(input, init);
+  if (String(input).includes('/sync/push') && net.loseNext > 0) { net.loseNext--; throw new TypeError('Network request failed'); }
+  return res;
+};
 
 const memoryDevice = (): DeviceStore => { let key: string | null = null, id: string | null = null; return { getKey: async () => key, saveKey: async (k) => { key = k; }, getDeviceId: async () => id, saveDeviceId: async (i) => { id = i; }, clear: async () => { id = null; } }; };
 
@@ -68,11 +80,12 @@ run('Integración con el ERP real', () => {
   function mobile() {
     const tokens = memoryTokens(); const { db } = createTestDb();
     let session!: SessionService; let auth!: AuthService;
-    const api: ApiClient = new ApiClient({ baseUrl: URL_!, appVersion: '1.0.0', tokens, getDeviceId: () => auth.deviceId, onSessionExpired: () => session.onSessionExpired() });
+    const api: ApiClient = new ApiClient({ baseUrl: URL_!, appVersion: '1.0.0', tokens, fetchImpl: flaky, getDeviceId: () => auth.deviceId, onSessionExpired: () => session.onSessionExpired() });
     auth = new AuthService(api, tokens, memoryDevice(), { deviceName: 'Pixel de integración', newDeviceKey: () => randomUUID(), appVersion: '1.0.0' });
     const bio = { isAvailable: async () => false, authenticate: async () => false };
-    session = new SessionService({ api, auth, tokens, db, pin: new PinLock(memoryPin(), nodeHasher), biometric: bio, appVersion: '1.0.0', versionLt });
-    return { session, db, auth, api };
+    const engine = new SyncEngine({ api, db, handlers: defaultHandlers });
+    session = new SessionService({ api, auth, tokens, db, pin: new PinLock(memoryPin(), nodeHasher), biometric: bio, engine, appVersion: '1.0.0', versionLt });
+    return { session, db, auth, api, engine: session['d'].engine as SyncEngine };
   }
 
   it('login → dispositivo → PIN → descarga inicial real: el catálogo queda en SQLite', async () => {
@@ -116,6 +129,53 @@ run('Integración con el ERP real', () => {
     const created = await admin(adminToken, 'POST', '/products', { sku: 'INT-003', name: 'Producto nuevo', unitId: (await admin(adminToken, 'GET', '/units?limit=100')).find((u: any) => u.code === 'UND').id });
     await m.session.sync();
     expect(n(products)).toBe(before + 1); expect(m.db.select().from(products).all().some((p) => p.id === created.id)).toBe(true);
+  });
+
+  /** RIF válido y único para pruebas. */
+  const newRif = (() => { let n = 20_000_000 + Math.floor(Math.random() * 5_000_000); const { isValidRif } = require('../../src/vendor/erp-domain'); return () => { for (;;) { n++; for (let d = 0; d < 10; d++) if (isValidRif(`V${n}${d}`)) return `V-${n}-${d}`; } }; })();
+  const serverCustomers = async (search: string) => (await admin(adminToken, 'GET', `/customers?search=${encodeURIComponent(search)}&limit=100`)) as any[];
+
+  it('M3: 10 clientes sin conexión; un corte pierde la respuesta; al reintentar quedan EXACTAMENTE 10 (sin duplicados), con vínculo por RIF y rechazo por política', async () => {
+    const m = first; const tag = `M3 Cliente ${rnd}`;
+    for (let i = 1; i <= 10; i++) createCustomerLocal(m.db, { rif: newRif(), legalName: `${tag} ${i}`, phone: '0412-0000000' });
+    expect((await serverCustomers(tag))).toHaveLength(0); // aún nada en el servidor
+
+    net.loseNext = 1; // el servidor procesa el lote pero el teléfono no ve la respuesta
+    expect((await m.engine.run()).offline).toBe(true);
+    expect(await serverCustomers(tag)).toHaveLength(10);
+    expect(m.db.select().from(customers).all().filter((c) => c.isLocal)).toHaveLength(10); // el teléfono aún no lo sabe
+
+    m.db.update(outbox).set({ nextAttemptAt: null }).run(); // «pasó la espera»
+    const r = await m.engine.run();
+    expect(r).toMatchObject({ applied: 10, offline: false });
+    const server = await serverCustomers(tag);
+    expect(server).toHaveLength(10); // reintentar NO duplicó
+    expect(server.every((c: any) => c.validationStatus === 'PENDING' && c.sellerId === sellerId)).toBe(true);
+    expect(m.db.select().from(customers).all().filter((c) => c.isLocal)).toHaveLength(0);
+    expect(new Set(m.db.select().from(customers).all().filter((c) => c.legalName.startsWith(tag)).map((c) => c.id))).toEqual(new Set(server.map((c: any) => c.id)));
+    expect(m.session.state.queue).toBeDefined();
+
+    // un cliente que ya existe en el servidor (fuera de mi cartera): se VINCULA por RIF, no se duplica
+    const sharedRif = newRif();
+    const existing = await admin(adminToken, 'POST', '/customers', { rif: sharedRif, legalName: `${tag} Existente`, creditDays: 0 });
+    const local = createCustomerLocal(m.db, { rif: sharedRif, legalName: `${tag} Existente (mi captura)` });
+    await m.engine.run();
+    expect(m.db.select().from(customers).all().some((c) => c.id === local.id)).toBe(false);
+    expect(m.db.select().from(customers).all().some((c) => c.id === existing.id)).toBe(true);
+    expect((await serverCustomers(`${tag} Existente`))).toHaveLength(1);
+
+    // el administrador le quita el permiso de crear clientes: el servidor rechaza con motivo; al volver a permitirlo, se corrige y se reenvía
+    await admin(adminToken, 'PATCH', `/sellers/${sellerId}`, { allowCustomerCreate: false });
+    const blockedRif = newRif();
+    const rejected = createCustomerLocal(m.db, { rif: blockedRif, legalName: `${tag} Rechazado` });
+    await m.engine.run();
+    expect(m.db.select().from(outbox).all().find((o) => o.entityId === rejected.id)).toMatchObject({ status: 'REJECTED', lastError: expect.stringContaining('CUSTOMER_CREATE_NOT_ALLOWED') });
+    expect(m.db.select().from(customers).all().find((c) => c.id === rejected.id)).toMatchObject({ isLocal: true });
+    await admin(adminToken, 'PATCH', `/sellers/${sellerId}`, { allowCustomerCreate: true });
+    updateCustomerLocal(m.db, rejected.id, { legalName: `${tag} Corregido` });
+    await m.engine.run();
+    expect(await serverCustomers(`${tag} Corregido`)).toHaveLength(1);
+    expect(m.session.pendingCount()).toBe(0);
   });
 
   it('un segundo teléfono del mismo vendedor es rechazado; al revocar el primero, este se bloquea y el segundo ya puede registrarse', async () => {

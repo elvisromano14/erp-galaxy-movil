@@ -10,7 +10,9 @@ import { META, getJson, getMeta, setJson, setMeta } from '../../db/meta';
 import { wipeReplica } from '../../db/replica';
 import { outbox } from '../../db/schema';
 import type { AppDb } from '../../db/types';
-import { type BootstrapProgress, isBootstrapped, runBootstrap, syncNow } from '../../sync/bootstrap';
+import { type BootstrapProgress, isBootstrapped, runBootstrap } from '../../sync/bootstrap';
+import type { SyncEngine } from '../../sync/SyncEngine';
+import { counts } from '../../db/repositories/outbox';
 
 export type SessionStatus = 'booting' | 'anonymous' | 'needs-company' | 'needs-pin' | 'locked' | 'needs-bootstrap' | 'ready' | 'blocked';
 export type BlockReason = 'DEVICE_REVOKED' | 'UPGRADE_REQUIRED';
@@ -30,15 +32,18 @@ export interface SessionState {
   busy: boolean;
   error: string | null;
   lastSyncAt: string | null;
+  /** Cola de salida: pendientes de envío, rechazadas y en revisión. */
+  queue: { pending: number; rejected: number; review: number };
 }
 
 const initial: SessionState = {
   status: 'booting', companies: [], profile: null, permissions: [], deviceCode: null, blocked: null, maintenance: null, online: true,
-  bootstrap: null, busy: false, error: null, lastSyncAt: null,
+  bootstrap: null, busy: false, error: null, lastSyncAt: null, queue: { pending: 0, rejected: 0, review: 0 },
 };
 
 export interface SessionDeps {
   api: ApiClient; auth: AuthService; tokens: TokenStore; db: AppDb; pin: PinLock; biometric: Biometric;
+  engine: SyncEngine;
   appVersion: string; versionLt: (a: string, b: string) => boolean;
   /** Inactividad en segundo plano tras la cual se pide el PIN (ms). */
   lockTimeoutMs?: number; now?: () => number;
@@ -82,6 +87,7 @@ export class SessionService {
     if (!hasSession || !ready) { this.set({ status: 'anonymous', online }); return; }
     const profile = getJson<Profile>(this.d.db, 'profile');
     this.set({ profile, permissions: getJson<string[]>(this.d.db, META.permissions) ?? [], deviceCode: getMeta(this.d.db, META.deviceCode), lastSyncAt: getMeta(this.d.db, META.lastSyncAt), online });
+    this.refreshQueue();
     if (!(await this.d.pin.isSet())) { this.set({ status: 'needs-pin' }); return; }
     this.set({ status: 'locked' });
   }
@@ -191,12 +197,31 @@ export class SessionService {
 
   cancelBootstrap() { this.cancel.cancelled = true; }
 
+  /** Ciclo completo: envía la cola (push) y luego descarga cambios (pull). Un solo ciclo a la vez. */
   async sync(): Promise<void> {
     this.set({ busy: true, error: null });
     try {
-      await syncNow(this.d.api, this.d.db);
+      const r = await this.d.engine.run();
+      this.refreshQueue();
+      // Si la sesión venció durante el ciclo, ya se pidió iniciar sesión de nuevo (`onSessionExpired`): no se pisa ese aviso.
+      if (this.state.status === 'anonymous') { this.set({ busy: false }); return; }
+      if (r.offline) { this.set({ busy: false, online: false, error: 'Sin conexión con el servidor: se reintentará. Puede seguir trabajando con los datos locales.' }); return; }
       this.set({ busy: false, online: true, lastSyncAt: getMeta(this.d.db, META.lastSyncAt) });
-    } catch (e) { this.syncFailed(e); }
+    } catch (e) { this.refreshQueue(); this.syncFailed(e); }
+  }
+
+  private syncTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Pide una sincronización con *debounce* (2 s): tras guardar, al volver la red o al abrir la app. */
+  requestSync(delayMs = 2000) {
+    if (this.state.status !== 'ready') return;
+    if (this.syncTimer) clearTimeout(this.syncTimer);
+    this.syncTimer = setTimeout(() => { this.syncTimer = null; if (this.state.status === 'ready' && !this.state.busy && !this.d.engine.isRunning) void this.sync(); }, delayMs);
+  }
+
+  /** Recalcula los contadores de la cola (después de guardar algo o de sincronizar). */
+  refreshQueue() {
+    const c = counts(this.d.db);
+    this.set({ queue: { pending: c.PENDING + c.SENDING, rejected: c.REJECTED, review: c.REVIEW } });
   }
 
   private syncFailed(e: unknown) {

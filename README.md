@@ -2,7 +2,7 @@
 
 App móvil **Android** de vendedores del [Mini ERP](https://github.com/elvisromano14/erp-galaxy) (multiempresa, Venezuela): consulta de productos y existencias, clientes, **cotizaciones y pedidos de venta**, con operación **offline-first** (la UI trabaja siempre contra SQLite; la red solo sincroniza).
 
-> **Estado: M2 – productos y existencias.** Acceso (login → empresa → dispositivo → PIN/huella), descarga inicial reanudable a SQLite y sincronización incremental (M1), más el catálogo local: búsqueda por SKU, nombre, OEM/equivalentes y código de barras (teclado o cámara), detalle con precios por lista, impuesto y existencias por depósito, y existencia en vivo sin costos. Verificado también contra la API real del ERP. Siguen clientes (M3), cotizaciones (M4) y pedidos (M5) — ver el [plan](docs/PLAN-MOVIL.md#14-plan-por-sprints-m0m8).
+> **Estado: M3 – clientes y cola de envío.** Acceso con PIN/huella, descarga inicial y catálogo local de productos (M1–M2), más la **cartera de clientes** (búsqueda, detalle con crédito indicativo, alta y edición sin conexión con validación de RIF) y el **motor de sincronización**: cola de salida (*outbox*) con coalescencia, envío por lotes e idempotente (reenviar nunca duplica), reintentos con espera creciente, vínculo por RIF con clientes existentes, bandeja de rechazos y pantalla de la cola. Verificado contra la API real del ERP (10 clientes creados sin conexión → un corte pierde la respuesta → quedan exactamente 10). Siguen cotizaciones (M4) y pedidos (M5) — ver el [plan](docs/PLAN-MOVIL.md#14-plan-por-sprints-m0m8).
 >
 > **En stand by:** enlace de descarga de la app dentro de Configuración del ERP (se hará cuando haya un APK de release firmado).
 
@@ -30,10 +30,10 @@ UI (Expo Router) → servicios → repositorios (Drizzle) → SQLite (réplica +
 
 ```
 src/
-├── app/            pantallas (Expo Router): login, empresa, PIN, desbloqueo, descarga, bloqueo, inicio
+├── app/            pantallas (Expo Router): acceso, productos, clientes, sincronización, escáner
 ├── core/           api (ApiClient, errores, contrato), auth (PIN, huella, permisos), session (máquina de estados), config
-├── db/             client SQLite, esquema Drizzle, migraciones, meta y restablecer réplica
-├── sync/           pull incremental, almacén SQLite de las páginas, descarga inicial, backoff (push y motor en M3)
+├── db/             client SQLite, esquema Drizzle, migraciones, repositorios (productos, clientes, outbox), meta y restablecer réplica
+├── sync/           motor (push + pull), manejadores de resultados, pull incremental, almacén SQLite, descarga inicial, backoff, disparadores
 ├── ui/             componentes base
 └── vendor/         OpenAPI/tipos y dominio del ERP (generado: no editar)
 ```

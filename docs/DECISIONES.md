@@ -29,3 +29,10 @@ Registro breve de lo decidido y por qué (formato ADR resumido). Las decisiones 
 | 23 | **Búsqueda con `search_text` normalizado + `LIKE`** (palabras en AND) en lugar de FTS5; SKU exacto y código de barras con índice | Medido con 50 000 productos: 4–8 ms en Node (objetivo 200 ms en un gama media-baja); evita depender de FTS5 en Expo. Se revisa si el dispositivo real no cumple |
 | 24 | **Precio vigente por lista = mayor `validFrom ≤ hoy` (hora de Caracas)**; los precios se muestran sin impuesto con la nota del IVA | Mismo criterio que el servidor; el IVA se calcula en el documento |
 | 25 | **Monedas como entidad de la sincronización** (código, símbolo, decimales) | Mostrar `$` / `Bs` correctamente sin suponer la moneda |
+| 26 | **Outbox con coalescencia**: una edición sobre una operación PENDIENTE (sin enviar) la reemplaza/funde; una ya en vuelo (SENDING) no se toca y la edición va como operación nueva | Menos tráfico y sin carreras con el envío |
+| 27 | **Fila + operación en UNA transacción SQLite** (`createCustomerLocal`, etc.); `local_seq` se incrementa en la misma | Nunca hay un cliente/documento sin su operación ni al revés (cierre forzado) |
+| 28 | **Motor con mutex, lotes de 20 por `clientSeq`, backoff 5 s→30 min con jitter**; BLOCKED no gasta intentos; las SENDING se recuperan al arrancar | Reintentos seguros gracias a la idempotencia del servidor; red mala sin pérdida |
+| 29 | **Id del servidor adoptado tras el alta** (`remapCustomer`): re-apunta documentos locales, fusiona con la fila que bajó por el pull y vincula por RIF | Plan §7/§10: un RIF existente se vincula, no se duplica |
+| 30 | **El vendedor edita solo clientes propios sin validar**; el RIF no se cambia; un alta rechazada se corrige y se reenvía como alta nueva | Coincide con la regla del servidor (`CUSTOMER_LOCKED`) |
+| 31 | **UUID v7 propio** (`uuidv7()`, sin dependencia `uuid`) sobre `crypto.getRandomValues` | Ids ordenables por tiempo generados en el dispositivo; una dependencia menos |
+| 32 | **Restablecer réplica conserva los clientes locales sin confirmar** (y siempre el outbox) | No se pierde trabajo del vendedor |

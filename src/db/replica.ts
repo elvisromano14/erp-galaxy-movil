@@ -12,7 +12,9 @@ import { PULL_ORDER } from '../core/api/contract';
  */
 export function wipeReplica(db: AppDb): void {
   db.transaction((tx) => {
-    for (const t of [productRefs, productPrices, products, stockSnapshots, warehouses, customers, taxes, exchangeRates, priceLists, currencies, appSettings]) tx.delete(t).run();
+    for (const t of [productRefs, productPrices, products, stockSnapshots, warehouses, taxes, exchangeRates, priceLists, currencies, appSettings]) tx.delete(t).run();
+    // Clientes creados en el teléfono y aún sin confirmar por el servidor: se conservan (su operación sigue en el outbox).
+    tx.delete(customers).where(eq(customers.isLocal, false)).run();
     const synced = tx.select({ id: salesDocuments.id }).from(salesDocuments).where(or(eq(salesDocuments.localStatus, 'SYNCED'), isNull(salesDocuments.localStatus))).all().map((r) => r.id);
     if (synced.length) {
       for (let i = 0; i < synced.length; i += 500) {

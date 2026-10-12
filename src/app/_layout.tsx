@@ -7,6 +7,7 @@ import { ActivityIndicator, AppState, Text, View } from 'react-native';
 import { useSession } from '../core/session/hooks';
 import type { SessionStatus } from '../core/session/SessionService';
 import { session } from '../core/services';
+import { startSyncTriggers } from '../sync/triggers';
 import { db } from '../db/client';
 import migrations from '../db/migrations/migrations';
 
@@ -22,7 +23,7 @@ function Gate() {
   const router = useRouter();
   const segments = useSegments();
 
-  useEffect(() => { void session.start(); }, []);
+  useEffect(() => { void session.start(); return startSyncTriggers(session); }, []);
   useEffect(() => {
     const sub = AppState.addEventListener('change', (st) => (st === 'active' ? session.onForeground() : st === 'background' ? session.onBackground() : undefined));
     return () => sub.remove();
@@ -41,6 +42,9 @@ function Gate() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="product/[id]" options={{ headerShown: true, title: 'Producto' }} />
+      <Stack.Screen name="customer/[id]" options={{ headerShown: true, title: 'Cliente' }} />
+      <Stack.Screen name="customer/form" options={{ headerShown: true, title: 'Cliente' }} />
+      <Stack.Screen name="sync" options={{ headerShown: true, title: 'Sincronización' }} />
       <Stack.Screen name="scan" options={{ headerShown: true, title: 'Escanear código', presentation: 'modal' }} />
     </Stack>
   );

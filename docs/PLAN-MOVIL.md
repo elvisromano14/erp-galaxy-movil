@@ -608,14 +608,16 @@ Se configuran con `app.config.ts` y la variable `APP_ENV`; permiten instalar las
 
 **Objetivo:** primer flujo de escritura offline completo y robusto.
 
-- [ ] Pull de `customers` (filtrado por vendedor) + búsqueda FTS
-- [ ] Lista y detalle de cliente (crédito, saldo, vencido indicativos)
-- [ ] **Alta y edición de cliente** con validación de RIF (`contracts`)
-- [ ] **Outbox** genérico: tabla, repositorio, transacción documento+outbox, coalescencia
-- [ ] **SyncEngine**: mutex, push en lotes, *backoff* con *jitter*, manejo de 401/403/426, aplicación de resultados
-- [ ] Vinculación de cliente duplicado por RIF (reemplazo de referencias locales)
-- [ ] Pantalla de **Sincronización** (cola, errores)
-- [ ] Pruebas del motor con servidor simulado (cortes, duplicados, rechazos)
+- [x] Pull de `customers` (filtrado por vendedor) + búsqueda FTS
+- [x] Lista y detalle de cliente (crédito, saldo, vencido indicativos)
+- [x] **Alta y edición de cliente** con validación de RIF (`contracts`)
+- [x] **Outbox** genérico: tabla, repositorio, transacción documento+outbox, coalescencia
+- [x] **SyncEngine**: mutex, push en lotes, *backoff* con *jitter*, manejo de 401/403/426, aplicación de resultados
+- [x] Vinculación de cliente duplicado por RIF (reemplazo de referencias locales)
+- [x] Pantalla de **Sincronización** (cola, errores)
+- [x] Pruebas del motor con servidor simulado (cortes, duplicados, rechazos)
+
+**Estado: implementado y verificado** (pruebas unitarias del motor con servidor simulado e integración contra el ERP real, incluido el corte que pierde la respuesta; pendiente probar en teléfono físico). Los disparadores en segundo plano (`expo-background-task`) quedan para M6.
 
 **Aceptación:** crear 10 clientes en modo avión → reconectar → aparecen 10 veces exactas en el servidor; reintentar el push no duplica.
 

@@ -8,6 +8,8 @@ import { PinLock } from './auth/PinLock';
 import { secureDeviceStore, secureTokenStore } from './auth/secureStorage';
 import { readEnv } from './config/env';
 import { SessionService } from './session/SessionService';
+import { defaultHandlers } from '../sync/handlers';
+import { SyncEngine } from '../sync/SyncEngine';
 import { versionLt } from './version';
 
 const env = readEnv();
@@ -30,8 +32,10 @@ export const auth: AuthService = new AuthService(api, secureTokenStore, secureDe
 
 export const pin = new PinLock(securePinStorage, expoHasher);
 
+export const engine = new SyncEngine({ api, db, handlers: defaultHandlers });
+
 export const session: SessionService = new SessionService({
-  api, auth, tokens: secureTokenStore, db, pin, biometric: expoBiometric, appVersion: env.appVersion, versionLt,
+  api, auth, tokens: secureTokenStore, db, pin, biometric: expoBiometric, engine, appVersion: env.appVersion, versionLt,
 });
 
 export { env, db };

@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { Alert } from 'react-native';
 import { session } from '../../core/services';
 import { useSession } from '../../core/session/hooks';
@@ -12,6 +13,9 @@ export default function Home() {
   const error = useSession((s) => s.error);
   const lastSync = useSession((s) => s.lastSyncAt);
   const maintenance = useSession((s) => s.maintenance);
+  const queue = useSession((s) => s.queue);
+  const router = useRouter();
+  const waiting = queue.pending + queue.rejected + queue.review;
 
   function logout() {
     const pending = session.pendingCount();
@@ -30,8 +34,12 @@ export default function Home() {
       {!online && <Banner>Sin conexión con el servidor. Trabaja con los datos de este teléfono.</Banner>}
       <Muted>Última sincronización: {lastSync ? new Date(lastSync).toLocaleString('es-VE') : 'nunca'}</Muted>
       <ErrorText>{error}</ErrorText>
+      {waiting > 0 && (
+        <Banner>{[queue.pending ? `${queue.pending} pendiente(s) de envío` : '', queue.rejected ? `${queue.rejected} rechazada(s)` : '', queue.review ? `${queue.review} en revisión` : ''].filter(Boolean).join(' · ')}</Banner>
+      )}
       <Button title="Sincronizar ahora" disabled={busy} onPress={() => void session.sync()} />
       <Busy show={busy} />
+      <Button title="Cola de sincronización" kind="secondary" onPress={() => router.push('/sync')} />
       <Button title="Bloquear" kind="secondary" onPress={() => session.lock()} />
       <Button title="Cerrar sesión" kind="secondary" onPress={logout} />
     </Screen>

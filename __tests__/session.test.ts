@@ -4,6 +4,8 @@ import type { PullEntity } from '../src/core/api/contract';
 import { AuthService, type DeviceStore } from '../src/core/auth/AuthService';
 import { PinLock } from '../src/core/auth/PinLock';
 import { SessionService } from '../src/core/session/SessionService';
+import { defaultHandlers } from '../src/sync/handlers';
+import { SyncEngine } from '../src/sync/SyncEngine';
 import { versionLt } from '../src/core/version';
 import { META, getMeta } from '../src/db/meta';
 import { outbox, products } from '../src/db/schema';
@@ -25,6 +27,11 @@ function server(opts: { minAppVersion?: string; companies?: number; failPullAfte
     'GET /auth/me': () => ({ body: { data: { user: { id: 'u1', email: 'v@x.test', fullName: 'Vendedor', isSuperAdmin: false }, company: company(1), permissions: ['sales:quotes:create', 'inventory:stock:read'], roles: [{ code: 'VENDEDOR', name: 'Vendedor' }] } } }),
     'POST /auth/refresh': () => ({ body: { data: { accessToken: 'acc3', refreshToken: 'ref3' } } }),
     'POST /auth/logout': { status: 204 },
+    'POST /sync/push': (_u: URL, init: RequestInit) => {
+      if (state.revoked) return { status: 403, body: { error: 'DEVICE_REVOKED', message: 'Revocado' } };
+      const ops: { clientOpId: string }[] = JSON.parse(String(init.body)).operations;
+      return { body: { data: { results: ops.map((o, i) => ({ clientOpId: o.clientOpId, status: 'APPLIED', serverId: `srv-${i}` })), serverTime: 'x' } } };
+    },
     'GET /sync/pull': (u: URL) => {
       const q = Object.fromEntries(u.searchParams) as Record<string, string>; state.pulls.push(q);
       if (state.revoked) return { status: 403, body: { error: 'DEVICE_REVOKED', message: 'Revocado' } };
@@ -53,7 +60,7 @@ function setup(srv = server(), extra: { now?: () => number; lockTimeoutMs?: numb
   auth = new AuthService(api, tokens, memoryDevice(), { deviceName: 'Pixel', newDeviceKey: () => 'k'.repeat(24), appVersion: '1.0.0' });
   const pinStore = memoryPin(); const pin = new PinLock(pinStore, nodeHasher);
   const bio = { available: true, ok: true, isAvailable: async () => bio.available, authenticate: async () => bio.ok };
-  session = new SessionService({ api, auth, tokens, db, pin, biometric: bio, appVersion: '1.0.0', versionLt, now: extra.now, lockTimeoutMs: extra.lockTimeoutMs });
+  session = new SessionService({ api, auth, tokens, db, pin, biometric: bio, engine: new SyncEngine({ api, db, handlers: defaultHandlers }), appVersion: '1.0.0', versionLt, now: extra.now, lockTimeoutMs: extra.lockTimeoutMs });
   return { session, db, api, tokens, f, pin, pinStore, bio, srv };
 }
 

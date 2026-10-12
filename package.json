@@ -21,6 +21,7 @@
     "node": ">=24"
   },
   "dependencies": {
+    "@react-native-community/netinfo": "12.0.1",
     "@shopify/flash-list": "2.0.2",
     "decimal.js": "^10.6.0",
     "drizzle-orm": "^0.45.4",
@@ -41,7 +42,6 @@
     "react-native-get-random-values": "~1.11.0",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.2",
-    "uuid": "^14.0.3",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

@@ -30,6 +30,11 @@ export const Field = (p: TextInputProps & { label: string }) => (
 
 export const Busy = ({ show }: { show: boolean }) => (show ? <ActivityIndicator accessibilityLabel="Cargando" /> : null);
 
+export function Badge({ text, tone = 'muted' }: { text: string; tone?: 'muted' | 'warn' | 'error' | 'ok' }) {
+  const c = { muted: colors.muted, warn: colors.warn, error: colors.error, ok: colors.ok }[tone];
+  return <View style={{ borderWidth: 1, borderColor: c, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-start' }}><Text style={{ color: c, fontSize: 11, fontWeight: '600' }}>{text}</Text></View>;
+}
+
 export const Banner = ({ children }: { children: ReactNode }) => <View style={s.banner}><Text style={{ color: colors.warn }}>{children}</Text></View>;
 
 const s = StyleSheet.create({
