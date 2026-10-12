@@ -7,8 +7,15 @@ ALIAS="${1:-erpventas}"
 OUT="${KEYSTORE_OUT:-$HOME/erp-ventas-release.keystore}"
 [ ! -e "$OUT" ] || { echo "Ya existe $OUT: no se sobrescribe."; exit 1; }
 PASS="$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-24)"
-keytool -genkeypair -v -storetype PKCS12 -keystore "$OUT" -alias "$ALIAS" -keyalg RSA -keysize 2048 -validity 10000 \
-  -storepass "$PASS" -keypass "$PASS" -dname "CN=ERP Ventas, O=Mini ERP, C=VE" >/dev/null 2>&1
+if command -v keytool >/dev/null 2>&1; then
+  keytool -genkeypair -v -storetype PKCS12 -keystore "$OUT" -alias "$ALIAS" -keyalg RSA -keysize 2048 -validity 10000 \
+    -storepass "$PASS" -keypass "$PASS" -dname "CN=ERP Ventas, O=Mini ERP, C=VE" >/dev/null 2>&1
+else
+  # Sin JDK instalado: se crea el mismo almacén PKCS12 con openssl (Gradle/Android lo aceptan igual).
+  TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+  openssl req -x509 -newkey rsa:2048 -sha256 -days 10000 -nodes -keyout "$TMP/key.pem" -out "$TMP/cert.pem" -subj "/CN=ERP Ventas/O=Mini ERP/C=VE" 2>/dev/null
+  openssl pkcs12 -export -inkey "$TMP/key.pem" -in "$TMP/cert.pem" -name "$ALIAS" -out "$OUT" -passout "pass:$PASS" 2>/dev/null
+fi
 chmod 600 "$OUT"
 cat <<MSG
 
