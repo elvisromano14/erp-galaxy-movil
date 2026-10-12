@@ -56,7 +56,7 @@ jobs:
           node scripts/release-signing.cjs android/app/build.gradle
 
       - name: Compilar APK y AAB firmados
-        run: ./gradlew assembleRelease bundleRelease --no-daemon
+        run: ./gradlew assembleRelease bundleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
         working-directory: android
 
       - name: Reunir resultados
