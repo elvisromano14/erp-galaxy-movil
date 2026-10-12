@@ -4,7 +4,7 @@ App móvil **Android** de vendedores del [Mini ERP](https://github.com/elvisroma
 
 > **Estado: M6 – la app está completa para el piloto.** Acceso con PIN/huella, descarga inicial, catálogo, clientes, **cotizaciones y pedidos** (con conversión cotización → pedido, reserva de existencias, revisión por crédito y estados de la oficina), sincronización idempotente con cola de envío y, ahora, el **endurecimiento offline**: tarea en segundo plano, bloqueo tras 14 días sin sincronizar, retención de 7 días tras una revocación, restablecer datos sin perder pendientes, diagnóstico, registro sin datos personales, protección contra relojes desfasados y cifrado opcional de la base (SQLCipher). Verificado con 126 pruebas (incluida una de caos con red intermitente) y contra la API real del ERP. **Siguiente: probar en un teléfono** ([guía](docs/PRUEBAS-EN-TELEFONO.md)) y el piloto (M7).
 >
-> **En stand by:** enlace de descarga de la app dentro de Configuración del ERP (se hará cuando haya un APK de release firmado).
+> **Distribución:** sin tiendas. El APK se descarga desde **Configuración → App móvil** del ERP (enlace firmado y código QR).
 
 ## Documentación
 
@@ -17,7 +17,7 @@ App móvil **Android** de vendedores del [Mini ERP](https://github.com/elvisroma
 | [`docs/PRUEBAS-EN-TELEFONO.md`](docs/PRUEBAS-EN-TELEFONO.md) | Cómo compilar la app, instalarla en un teléfono y la lista de pruebas de campo |
 | [`docs/MANUAL-VENDEDOR.md`](docs/MANUAL-VENDEDOR.md) · [`SOPORTE.md`](docs/SOPORTE.md) | Manual de uso para vendedores, soporte y capacitación |
 | [`docs/PILOTO.md`](docs/PILOTO.md) | Plan del piloto: métricas, seguimiento y criterios go/no-go (M7) |
-| [`docs/LANZAMIENTO.md`](docs/LANZAMIENTO.md) · [`POLITICA-DE-PRIVACIDAD.md`](docs/POLITICA-DE-PRIVACIDAD.md) | Release firmado, Google Play y política de privacidad (M8) |
+| [`docs/LANZAMIENTO.md`](docs/LANZAMIENTO.md) · [`POLITICA-DE-PRIVACIDAD.md`](docs/POLITICA-DE-PRIVACIDAD.md) | Distribución desde el ERP (sin tiendas), firma con keystore propio y política de privacidad (M8) |
 | [`docs/BACKLOG-V1_1.md`](docs/BACKLOG-V1_1.md) | Candidatos para la v1.1 |
 
 ## Arquitectura (resumen)

@@ -1,6 +1,6 @@
 # Política de privacidad — ERP Ventas (app móvil)
 
-> **Borrador para revisión del propietario.** Complete los datos marcados con `[ ]` y valídelo con asesoría legal antes de publicarlo (Google Play exige una URL pública).
+> **Borrador para revisión del propietario.** Complete los datos marcados con `[ ]` y valídelo con asesoría legal antes de publicarlo. No es obligatorio por una tienda (la app no está en Play), pero conviene entregarlo a los vendedores y a los clientes.
 
 **Responsable:** [razón social del titular de la app] · RIF [ ] · Contacto: [correo de contacto]
 **Última actualización:** [fecha]

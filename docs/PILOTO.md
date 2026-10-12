@@ -9,7 +9,7 @@
 
 ## Preparación (administración)
 1. Crear a cada vendedor: usuario (rol Vendedor) y vendedor ligado, con descuento máximo y permisos (ver el manual del ERP).
-2. Instalar el APK (o la prueba interna de Google Play).
+2. Instalar el APK descargándolo desde el ERP (Configuración → App móvil).
 3. Capacitación de 30 min con el [manual](MANUAL-VENDEDOR.md): primer ingreso, cotización, pedido, qué hacer sin señal.
 4. Dejar anotado a quién avisar si hay un problema.
 

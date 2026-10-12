@@ -42,7 +42,7 @@
 | Patrón | **Offline-first**: la UI lee y escribe siempre en SQLite; la red solo sincroniza |
 | Sincronización | `GET /sync/pull` (cursor incremental) y `POST /sync/push` (cola *outbox* idempotente) del backend v2 |
 | Lógica compartida | `packages/domain` (totales, impuestos, moneda) y `packages/contracts` (Zod) reutilizados tal cual |
-| Distribución | APK firmado / Google Play (prueba interna o cerrada); compilación en GitHub Actions o EAS |
+| Distribución | **APK descargado desde el ERP (Configuración → App móvil); sin Google Play** (decisión posterior al plan original); compilación en GitHub Actions |
 | Duración estimada | **~16 semanas** (8 sprints de 2 semanas) con 1–2 desarrolladores móviles, en paralelo con el backend |
 
 **Principio rector:** el vendedor **nunca espera a la red**. Toda acción se confirma localmente al instante; la sincronización ocurre después y su resultado se muestra claramente.
@@ -489,6 +489,8 @@ Se configuran con `app.config.ts` y la variable `APP_ENV`; permiten instalar las
 
 ### 12.3 Distribución
 
+> **Actualización:** se decidió **no usar Google Play**. El APK firmado se publica en el ERP (ver [`LANZAMIENTO.md`](LANZAMIENTO.md)); la tabla siguiente se conserva como referencia original.
+
 | Fase | Canal |
 |---|---|
 | Desarrollo / QA | APK directo o EAS *internal distribution* |
@@ -687,13 +689,13 @@ Se configuran con `app.config.ts` y la variable `APP_ENV`; permiten instalar las
 
 ### M8 – Lanzamiento (2 sem)
 
-- [ ] Configuración de **Play Console** (prueba cerrada/producción), *Play App Signing*, ficha, política de privacidad
+- [x] ~~Configuración de **Play Console**~~ (descartado: la distribución es desde el ERP)
 - [x] Pipeline de *release* firmado y versionado (`versionCode` automático)
 - [x] Capacitación a vendedores y guía de soporte (cómo revisar rechazados, qué hacer sin señal)
 - [x] Monitoreo post-lanzamiento (Sentry, dispositivos activos, colas largas)
 - [x] Plan de soporte y de actualizaciones; retrospectiva y backlog v1.1
 
-**Estado:** preparado. Hecho: pipeline de release firmado (etiqueta `v*`, `versionCode` automático, APK+AAB+SHA256), guías de Play Console, política de privacidad (borrador), soporte y capacitación, monitoreo y backlog v1.1 — ver [`LANZAMIENTO.md`](LANZAMIENTO.md). **Pendiente (lo hace el propietario):** generar el keystore y los secretos, cuenta de Google Play y publicar la ficha.
+**Estado:** preparado. **Cambio de alcance: la app NO se publica en Google Play; se descarga desde el ERP (Configuración → App móvil).** Hecho: pipeline de release firmado (etiqueta `v*`, `versionCode` automático, APK+AAB+SHA256), módulo de descarga en el ERP (enlace firmado, QR, `publish-apk.sh`), soporte y capacitación, monitoreo y backlog v1.1 — ver [`LANZAMIENTO.md`](LANZAMIENTO.md). **Pendiente (lo hace el propietario):** generar el keystore propio (`scripts/generate-keystore.sh`) y cargar los secretos.
 
 ---
 
