@@ -2,6 +2,25 @@
 
 La app usa módulos nativos (SQLite, SecureStore, cámara…): **no funciona en Expo Go**; hace falta un *development build* o un APK.
 
+## Instalar el APK y Google Play Protect
+
+La app no está en Play Store: se descarga desde el ERP (**Configuración → App móvil**) y se instala a mano. Android y Play Protect avisan porque el origen es desconocido; es normal. El APK va firmado con el keystore propio y el ERP muestra su SHA-256 para verificarlo.
+
+**1. Permitir instalar desde el navegador (una vez)**
+Al abrir el APK descargado, Android pide permiso: toque **Configuración** y active **Permitir desde esta fuente** para el navegador que usó (Chrome, Samsung Internet…). Vuelva atrás y toque **Instalar**.
+
+**2. Si Play Protect lo bloquea («App bloqueada por Play Protect» / «Analizar app»)**
+- Toque **Más detalles** → **Instalar de todos modos**. Si solo aparece **Entendido**, use el paso siguiente.
+- Abra **Play Store** → su foto de perfil → **Play Protect** → engranaje ⚙ → desactive **Analizar aplicaciones con Play Protect**. Instale la app y **vuelva a activarlo**.
+- En algunos equipos el engranaje está en *Ajustes → Seguridad y privacidad → Seguridad de aplicaciones/Play Protect*.
+- En Xiaomi/Redmi también puede pedir desactivar la **Verificación MIUI** (Ajustes → Contraseñas y seguridad → Privacidad → Servicios del sistema).
+
+**3. Actualizar**
+Descargue la versión nueva e instálela **encima** de la actual: los datos y los pendientes de envío se conservan (misma firma). Si Android dice «App no instalada», la firma no coincide: no desinstale sin antes sincronizar (se pierden los pendientes) y avise a soporte.
+
+**4. Comprobar que es el APK correcto (soporte)**
+`sha256sum erp-ventas-prod-X.Y.Z.apk` debe coincidir con el valor de Configuración → App móvil.
+
 ## 1. Compilar e instalar (Android)
 
 **Opción A — desde su equipo** (requiere Android SDK y un teléfono con *Depuración USB*):

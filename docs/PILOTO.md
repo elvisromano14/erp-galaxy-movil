@@ -2,6 +2,13 @@
 
 **Objetivo:** validar la app con vendedores reales antes del lanzamiento general: que sea rápida, que no pierda ni duplique datos y que los vendedores quieran usarla.
 
+## Estado de preparación (2026-10-12)
+- ✅ APK 0.1.2 firmado y publicado en el ERP; versión mínima 0.1.0.
+- ✅ Instalación y Play Protect documentados ([guía](PRUEBAS-EN-TELEFONO.md)); manual del vendedor y soporte listos.
+- ✅ Empresa Infoservi con vendedor de prueba y datos `[PRUEBA]` (se conservan durante el piloto).
+- ⏳ Por definir: nombres de los 2–3 vendedores reales, sus teléfonos/modelos y fecha de arranque.
+- ⏳ Visto bueno final (go / no-go) del propietario al terminar el piloto.
+
 ## Alcance
 - **2–3 vendedores** (de preferencia con teléfonos de gama baja, media y alta), **1–2 semanas** de uso real.
 - Una empresa de producción (Infoservi, CA) con sus clientes y productos reales (o la de prueba para el ensayo previo).

@@ -19,6 +19,7 @@ scripts/generate-keystore.sh        # crea erp-ventas-release.keystore y muestra
 ```
 - Guarde el archivo y las contraseñas en un gestor de contraseñas **y en un respaldo fuera de línea**. Si lo pierde, todos los vendedores tendrían que **desinstalar y reinstalar** la app (se perdería lo no enviado).
 - Cargue los secretos en GitHub (Settings → Secrets and variables → Actions): `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
+- **Respaldo (hecho 2026-10-12):** `erp-ventas-keystore-respaldo.tgz.enc` (keystore + credenciales, AES-256 con frase propia) en el equipo de desarrollo y en el VPS (`~/respaldos-seguros/`). La frase de descifrado se guarda aparte, en el gestor de contraseñas del propietario. Falta una copia fuera de línea (USB).
 - **Cambiar de clave después obliga a reinstalar**: por eso conviene hacerlo antes de entregar la app a los vendedores.
 
 ## 3. Publicar una versión
