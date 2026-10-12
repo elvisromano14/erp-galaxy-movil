@@ -45,3 +45,9 @@ jobs:
       # Humo de empaquetado: Metro + Hermes deben poder compilar la app (detecta importaciones rotas, migraciones SQL, etc.).
       - name: Empaquetar Android (humo)
         run: npx expo export --platform android --output-dir "$RUNNER_TEMP/export"
+
+      # Mismo comando que usa Gradle al compilar el APK de release (detecta dependencias de Babel/Metro sin declarar).
+      - name: Empaquetar como en el build de release
+        env:
+          NODE_ENV: production
+        run: node node_modules/expo/bin/cli export:embed --platform android --dev false --reset-cache --entry-file node_modules/expo-router/entry.js --bundle-output "$RUNNER_TEMP/index.android.bundle"

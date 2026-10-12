@@ -15,6 +15,8 @@ export interface ApiClientOptions {
   tokens: TokenStore;
   /** Id del dispositivo registrado (cabecera X-Device-Id en sync/*). */
   getDeviceId?: () => string | null;
+  /** Tamaño de la cola de salida: se reporta al servidor en cada petición (monitoreo de colas largas desde la oficina). */
+  getQueueSize?: () => number | null;
   /** Se invoca cuando no hay forma de renovar la sesión (refresh inválido/revocado). */
   onSessionExpired?: () => void;
   fetchImpl?: typeof fetch;
@@ -96,6 +98,8 @@ export class ApiClient {
     if (o.auth !== false && this.access) headers.authorization = `Bearer ${this.access}`;
     const device = this.opts.getDeviceId?.();
     if (device) headers['x-device-id'] = device;
+    const queue = this.opts.getQueueSize?.();
+    if (device && queue !== null && queue !== undefined) headers['x-queue-size'] = String(queue);
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), this.opts.timeoutMs ?? 30_000);
     try {

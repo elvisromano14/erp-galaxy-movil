@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
 import { db } from '../db/client';
+import { counts } from '../db/repositories/outbox';
 import { ApiClient } from './api/ApiClient';
 import { AuthService } from './auth/AuthService';
 import { expoBiometric, expoHasher, securePinStorage } from './auth/native';
@@ -20,6 +21,7 @@ export const api: ApiClient = new ApiClient({
   appVersion: env.appVersion,
   tokens: secureTokenStore,
   getDeviceId: () => auth.deviceId,
+  getQueueSize: () => { try { const c = counts(db); return c.PENDING + c.SENDING; } catch { return null; } },
   onSessionExpired: () => session.onSessionExpired(),
 });
 

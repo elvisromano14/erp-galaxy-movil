@@ -44,7 +44,7 @@ const s = StyleSheet.create({
   error: { color: colors.error },
   label: { color: colors.text, fontWeight: '600' },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, fontSize: 16, color: colors.text },
-  btn: { backgroundColor: colors.primary, borderRadius: 8, paddingVertical: 14, alignItems: 'center' },
+  btn: { backgroundColor: colors.primary, borderRadius: 8, paddingVertical: 14, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   btnSecondary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.primary },
   btnDanger: { backgroundColor: colors.error },
   btnText: { color: '#fff', fontWeight: '600', fontSize: 16 },

@@ -86,7 +86,7 @@ function Row({ item, onPress }: { item: DocListRow; onPress: () => void }) {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 12 },
-  chip: { borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  chip: { borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
   chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   row: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, alignItems: 'center' },
   num: { fontWeight: '700', color: colors.text },

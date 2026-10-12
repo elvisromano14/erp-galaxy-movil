@@ -25,6 +25,8 @@ export default (): ExpoConfig => ({
   userInterfaceStyle: 'automatic',
   android: {
     package: `com.galaxy.erpventas${suffix}`,
+    // Número de versión para Play: el CI lo fija con VERSION_CODE (debe crecer en cada publicación).
+    versionCode: Number(process.env.VERSION_CODE ?? 1),
     allowBackup: false, // sin copias de seguridad de Android (datos del cliente en el teléfono)
     permissions: ['CAMERA'],
     adaptiveIcon: {
