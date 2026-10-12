@@ -16,3 +16,8 @@ export function usePermission(code: string): boolean {
 export function useAnyPermission(...codes: string[]): boolean {
   return useSession((s) => hasAny(s.permissions, codes));
 }
+
+/** ¿Tiene TODOS estos permisos? (p. ej. crear y confirmar pedidos). */
+export function useAllPermissions(...codes: string[]): boolean {
+  return useSession((s) => codes.every((c) => hasPermission(s.permissions, c)));
+}

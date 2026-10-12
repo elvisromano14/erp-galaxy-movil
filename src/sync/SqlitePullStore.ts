@@ -1,9 +1,9 @@
-import { eq, getTableColumns, inArray, or, sql } from 'drizzle-orm';
+import { and, eq, getTableColumns, inArray, or, sql } from 'drizzle-orm';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { PullEntity, PullPage } from '../core/api/contract';
 import { META, getMeta, setMeta, setJson } from '../db/meta';
 import {
-  appSettings, currencies, customers, exchangeRates, priceLists, productPrices, productRefs, products, salesDocumentLines, salesDocuments, stockSnapshots, taxes, warehouses,
+  appSettings, currencies, customers, exchangeRates, outbox, priceLists, productPrices, productRefs, products, salesDocumentLines, salesDocuments, stockSnapshots, taxes, warehouses,
 } from '../db/schema';
 import type { AppDb } from '../db/types';
 import { normalizeText } from './normalize';
@@ -132,7 +132,13 @@ export class SqlitePullStore implements PullStore {
   private documents(db: AppDb, items: Item[]) {
     for (const d of items) {
       const local = db.select().from(salesDocuments).where(or(eq(salesDocuments.serverId, d.id), eq(salesDocuments.id, d.id))).get();
-      if (local && PENDING_LOCAL.includes(local.localStatus)) continue;
+      if (local && PENDING_LOCAL.includes(local.localStatus)) {
+        // EN REVISIÓN: el servidor ya tiene el documento (en borrador). Cuando administración lo resuelve (deja de estar en borrador)
+        // el servidor manda: el documento pasa a SYNCED y su operación se da por cerrada.
+        const resolved = local.localStatus === 'NEEDS_REVIEW' && local.serverId !== null && d.status !== 'DRAFT';
+        if (!resolved) continue;
+        db.update(outbox).set({ status: 'DONE' }).where(and(eq(outbox.entityId, local.id), eq(outbox.status, 'REVIEW'))).run();
+      }
       const id = local?.id ?? d.id;
       const row = {
         id, serverId: d.id as string, docType: d.docType as string, customerId: d.customerId as string, localNumber: local?.localNumber ?? null, serverNumber: (d.number ?? null) as string | null,

@@ -89,6 +89,18 @@ describe('SqlitePullStore', () => {
     expect(db.select().from(salesDocuments).get()).toMatchObject({ localStatus: 'PENDING_SYNC', serverStatus: 'INVOICED', notes: 'editado en el teléfono' });
   });
 
+  it('documento EN REVISIÓN: mientras el servidor lo tenga en borrador no se pisa; cuando administración lo confirma, pasa a SYNCED y cierra su operación', async () => {
+    const { db } = createTestDb(); const st = new SqlitePullStore(db);
+    const doc = (status: string) => ({ id: 'srv-o', docType: 'ORDER', number: 'PED-000007', status, customerId: 'c1', currencyId: 'usd', total: '100', version: 2, updatedAt: '2026-10-11T10:00:00.000Z', lines: [] });
+    db.insert(salesDocuments).values({ id: 'loc-o', serverId: 'srv-o', docType: 'ORDER', customerId: 'c1', currencyId: 'usd', localStatus: 'NEEDS_REVIEW', serverStatus: 'DRAFT', createdAtDevice: 'n', updatedAt: 'n' }).run();
+    db.insert(outbox).values({ clientOpId: 'op', clientSeq: 1, entity: 'sales_order', action: 'create', entityId: 'loc-o', payloadJson: '{}', status: 'REVIEW', createdAt: 'n' }).run();
+    await st.applyPage(page('my_documents', [doc('DRAFT')]), 'x1');
+    expect(db.select().from(salesDocuments).get()).toMatchObject({ localStatus: 'NEEDS_REVIEW' });
+    await st.applyPage(page('my_documents', [doc('CONFIRMED')]), 'x2');
+    expect(db.select().from(salesDocuments).get()).toMatchObject({ id: 'loc-o', localStatus: 'SYNCED', serverStatus: 'CONFIRMED', serverNumber: 'PED-000007' });
+    expect(db.select().from(outbox).get()!.status).toBe('DONE');
+  });
+
   it('restablecer réplica borra catálogos y cursores pero conserva el outbox y los documentos con cambios locales', async () => {
     const { db } = createTestDb(); const store = new SqlitePullStore(db);
     await store.applyPage(page('products', [product(1)]), 'c1');

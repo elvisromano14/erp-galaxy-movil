@@ -4,7 +4,7 @@ import { AppState, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'r
 import { caracasToday, formatMoney, formatNumber, formatQty } from '../../core/format';
 import { db, session } from '../../core/services';
 import { getCustomer } from '../../db/repositories/customers';
-import { type DraftInput, type DraftLine, defaultValidUntil, getDocument, saveDraft, submitDocument } from '../../db/repositories/documents';
+import { type DocType, type DraftInput, type DraftLine, defaultValidUntil, getDocument, saveDraft, submitDocument } from '../../db/repositories/documents';
 import { getAppSettings } from '../../db/repositories/settings';
 import { computeTotals, toBs } from '../../features/documents/calc';
 import { consumePick } from '../../features/documents/pickerStore';
@@ -19,18 +19,20 @@ interface EditorLine extends DraftLine { name: string }
  * Se autoguarda como borrador (al editar, al pasar a segundo plano y al salir). «Guardar y enviar» confirma localmente y encola el envío.
  */
 export default function DocumentEditor() {
-  const params = useLocalSearchParams<{ id?: string; customerId?: string; addProductId?: string }>();
+  const params = useLocalSearchParams<{ id?: string; customerId?: string; addProductId?: string; docType?: string }>();
   const router = useRouter();
   const settings = useMemo(() => getAppSettings(db), []);
   const today = caracasToday();
 
   const initial = useMemo(() => (params.id ? getDocument(db, params.id) : null), [params.id]);
+  const docType: DocType = (initial?.doc.docType ?? params.docType) === 'ORDER' ? 'ORDER' : 'QUOTE';
+  const isOrder = docType === 'ORDER';
   const [docId, setDocId] = useState<string | undefined>(initial?.doc.id);
   const [customerId, setCustomerId] = useState(initial?.doc.customerId ?? params.customerId ?? '');
   const [lines, setLines] = useState<EditorLine[]>(() => (initial?.lines ?? []).map((l) => ({ productId: l.productId, sku: l.sku, name: l.description || l.sku || '', description: l.description, quantity: l.quantity, unitPrice: l.unitPrice, discountPct: l.discountPct, taxId: l.taxId, taxRate: l.taxRate })));
   const [payment, setPayment] = useState<'CASH' | 'CREDIT'>((initial?.doc.paymentCondition as 'CASH' | 'CREDIT') ?? 'CASH');
   const [creditDays, setCreditDays] = useState(String(initial?.doc.creditDays ?? 0));
-  const [validUntil, setValidUntil] = useState(initial?.doc.validUntil ?? defaultValidUntil());
+  const [validUntil, setValidUntil] = useState(initial?.doc.validUntil ?? (isOrder ? '' : defaultValidUntil()));
   const [notes, setNotes] = useState(initial?.doc.notes ?? '');
   const [editing, setEditing] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,9 +45,9 @@ export default function DocumentEditor() {
   const rate = latestRate(db, currencyId);
 
   const input: DraftInput = useMemo(() => ({
-    id: docId, docType: 'QUOTE', customerId, currencyId, paymentCondition: payment, creditDays: Number(creditDays) || 0, validUntil: validUntil || null,
-    notes: notes.trim() || null, warehouseId: settings.defaultWarehouseId, lines,
-  }), [docId, customerId, currencyId, payment, creditDays, validUntil, notes, settings.defaultWarehouseId, lines]);
+    id: docId, docType, customerId, currencyId, paymentCondition: payment, creditDays: Number(creditDays) || 0, validUntil: isOrder ? null : validUntil || null,
+    notes: notes.trim() || null, warehouseId: initial?.doc.warehouseId ?? settings.defaultWarehouseId, sourceDocumentId: initial?.doc.sourceDocumentId ?? null, lines,
+  }), [docId, docType, isOrder, initial, customerId, currencyId, payment, creditDays, validUntil, notes, settings.defaultWarehouseId, lines]);
   const totals = useMemo(() => computeTotals(lines.map((l) => ({ ...l, taxExempt: Number(l.taxRate) === 0 }))), [lines]);
   const totalBs = rate && currency?.code !== 'VES' ? toBs(totals.total, rate.rate) : null;
   const rateAge = rate ? Math.round((new Date(`${today}T00:00:00Z`).getTime() - new Date(`${rate.date}T00:00:00Z`).getTime()) / 86_400_000) : null;
@@ -129,7 +131,9 @@ export default function DocumentEditor() {
   const line = editing !== null ? lines[editing] : null;
   return (
     <Screen scroll>
-      <Stack.Screen options={{ title: initial?.displayNumber && initial.displayNumber !== '(borrador)' ? initial.displayNumber : 'Nueva cotización' }} />
+      <Stack.Screen options={{ title: initial?.displayNumber && initial.displayNumber !== '(borrador)' ? initial.displayNumber : isOrder ? 'Nuevo pedido' : 'Nueva cotización' }} />
+      {isOrder && initial?.doc.sourceDocumentId && <Banner>Pedido basado en una cotización: se vincula al enviarlo.</Banner>}
+      {isOrder && <Muted>Al enviarlo, el pedido se confirma en el sistema y reserva existencias.</Muted>}
       <Pressable style={s.card} onPress={() => router.push('/document/pick-customer')} accessibilityRole="button" accessibilityLabel="Elegir cliente">
         <Text style={s.label}>Cliente</Text>
         <Text style={s.value}>{customer?.legalName ?? 'Toque para elegir un cliente'}</Text>
@@ -161,7 +165,7 @@ export default function DocumentEditor() {
         <Button title={payment === 'CREDIT' ? '● Crédito' : 'Crédito'} kind={payment === 'CREDIT' ? 'primary' : 'secondary'} onPress={() => { setPayment('CREDIT'); if (Number(creditDays) === 0 && customer) setCreditDays(String(customer.creditDays)); touch(); }} />
       </View>
       {payment === 'CREDIT' && <Field label="Días de crédito" keyboardType="number-pad" value={creditDays} onChangeText={(v) => { setCreditDays(v.replace(/\D/g, '').slice(0, 3)); touch(); }} />}
-      <Field label="Válida hasta (AAAA-MM-DD)" value={validUntil} onChangeText={(v) => { setValidUntil(v); touch(); }} placeholder="2026-12-31" />
+      {!isOrder && <Field label="Válida hasta (AAAA-MM-DD)" value={validUntil} onChangeText={(v) => { setValidUntil(v); touch(); }} placeholder="2026-12-31" />}
       <Field label="Observaciones (opcional)" value={notes} onChangeText={(v) => { setNotes(v); touch(); }} multiline />
 
       <View style={s.totals}>
@@ -175,7 +179,7 @@ export default function DocumentEditor() {
       {validation.warnings.map((m) => <Banner key={m}>{m}</Banner>)}
       <ErrorText>{error}</ErrorText>
       <Button title="Guardar borrador" kind="secondary" onPress={saveAndExit} />
-      <Button title="Guardar y enviar" disabled={validation.errors.length > 0} onPress={send} />
+      <Button title={isOrder ? 'Guardar y enviar pedido' : 'Guardar y enviar'} disabled={validation.errors.length > 0} onPress={send} />
       <Muted>El precio, los impuestos y el número definitivo los confirma el servidor al sincronizar.</Muted>
 
       <LineModal line={line} currency={currency} canEditPrice={settings.allowPriceEdit} maxDiscount={settings.maxDiscountPct} onClose={() => setEditing(null)}

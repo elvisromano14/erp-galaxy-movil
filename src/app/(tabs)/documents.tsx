@@ -4,8 +4,9 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatMoney } from '../../core/format';
 import { db } from '../../core/services';
-import { usePermission } from '../../core/session/hooks';
+import { useAllPermissions, usePermission } from '../../core/session/hooks';
 import { type DocListRow, listDocuments } from '../../db/repositories/documents';
+import { SERVER_STATUS_LABEL } from '../../features/documents/explain';
 import { currencyOf } from '../../features/documents/pricing';
 import { Badge, Button, colors, Muted } from '../../ui/kit';
 
@@ -23,18 +24,27 @@ export const STATUS_LABEL: Record<string, { text: string; tone: 'muted' | 'warn'
 export default function Documents() {
   const router = useRouter();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['key']>('ALL');
+  const [type, setType] = useState<'ALL' | 'QUOTE' | 'ORDER'>('ALL');
   const [tick, setTick] = useState(0);
-  const canCreate = usePermission('sales:quotes:create');
+  const canQuote = usePermission('sales:quotes:create');
+  const canOrder = useAllPermissions('sales:orders:create', 'sales:orders:confirm');
   useFocusEffect(useCallback(() => { setTick((n) => n + 1); }, []));
 
   const rows = useMemo(() => {
     void tick;
-    const all = listDocuments(db, { limit: 200 });
+    const all = listDocuments(db, { limit: 200, docType: type === 'ALL' ? undefined : type });
     return filter === 'ALL' ? all : filter === 'PROBLEMS' ? all.filter((r) => r.localStatus === 'REJECTED' || r.localStatus === 'NEEDS_REVIEW') : all.filter((r) => r.localStatus === filter);
-  }, [filter, tick]);
+  }, [filter, type, tick]);
 
   return (
     <View style={s.container}>
+      <View style={s.chips}>
+        {([['ALL', 'Todo'], ['QUOTE', 'Cotizaciones'], ['ORDER', 'Pedidos']] as const).map(([k, label]) => (
+          <Pressable key={k} onPress={() => setType(k)} style={[s.chip, type === k && s.chipOn]} accessibilityRole="button" accessibilityState={{ selected: type === k }}>
+            <Text style={{ color: type === k ? '#fff' : colors.text, fontSize: 13 }}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
       <View style={s.chips}>
         {FILTERS.map((f) => (
           <Pressable key={f.key} onPress={() => setFilter(f.key)} style={[s.chip, filter === f.key && s.chipOn]} accessibilityRole="button" accessibilityState={{ selected: filter === f.key }}>
@@ -48,7 +58,10 @@ export default function Documents() {
         renderItem={({ item }) => <Row item={item} onPress={() => router.push({ pathname: '/document/[id]', params: { id: item.id } })} />}
         ListEmptyComponent={<View style={s.empty}><Muted>No hay documentos en esta vista.</Muted></View>}
       />
-      {canCreate && <View style={{ padding: 12 }}><Button title="Nueva cotización" onPress={() => router.push('/document/editor')} /></View>}
+      <View style={{ padding: 12, gap: 8 }}>
+        {canQuote && <Button title="Nueva cotización" onPress={() => router.push('/document/editor')} />}
+        {canOrder && <Button title="Nuevo pedido" kind="secondary" onPress={() => router.push({ pathname: '/document/editor', params: { docType: 'ORDER' } })} />}
+      </View>
     </View>
   );
 }
@@ -59,12 +72,12 @@ function Row({ item, onPress }: { item: DocListRow; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={s.row} accessibilityRole="button" accessibilityLabel={`${item.displayNumber} ${item.customerName ?? ''}`}>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={s.num}>{item.displayNumber}</Text>
+        <Text style={s.num}>{item.docType === 'ORDER' ? 'Pedido ' : ''}{item.displayNumber}</Text>
         <Text style={s.muted} numberOfLines={1}>{item.customerName ?? 'Sin cliente'}</Text>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 4 }}>
         <Text style={s.num}>{formatMoney(item.total, cur)}</Text>
-        <Badge text={st.text} tone={st.tone} />
+        <Badge text={item.localStatus === 'SYNCED' && item.serverStatus ? (SERVER_STATUS_LABEL[item.serverStatus] ?? st.text) : st.text} tone={st.tone} />
       </View>
     </Pressable>
   );

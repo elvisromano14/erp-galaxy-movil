@@ -6,6 +6,7 @@ import { useSession } from '../core/session/hooks';
 import { listQueue, type OutboxRow } from '../db/repositories/outbox';
 import { syncLog } from '../db/schema';
 import { desc } from 'drizzle-orm';
+import { explainError } from '../features/documents/explain';
 import { Badge, Banner, Busy, Button, colors, ErrorText, Muted, Screen } from '../ui/kit';
 
 const ENTITY: Record<string, string> = { customer: 'cliente', sales_quote: 'cotización', sales_order: 'pedido' };
@@ -50,7 +51,8 @@ export default function SyncScreen() {
             <Badge text={LABEL[o.status] ?? o.status} tone={TONE[o.status] ?? 'muted'} />
           </View>
           <Muted>{new Date(o.createdAt).toLocaleString('es-VE')}{o.attempts > 0 ? ` · ${o.attempts} intento(s)` : ''}</Muted>
-          {o.lastError ? <Text style={{ color: o.status === 'REJECTED' ? colors.error : colors.warn }}>{o.lastError}</Text> : null}
+          {o.lastError ? <Text style={{ color: o.status === 'REJECTED' ? colors.error : colors.warn }}>{explainError(o.lastError)}</Text> : null}
+          {(o.entity === 'sales_quote' || o.entity === 'sales_order') && (o.status === 'REJECTED' || o.status === 'REVIEW') && <Button title="Abrir documento" kind="secondary" onPress={() => router.push({ pathname: '/document/[id]', params: { id: o.entityId } })} />}
           {o.status === 'REJECTED' && o.entity === 'customer' && <Button title="Corregir" kind="secondary" onPress={() => router.push({ pathname: '/customer/form', params: { id: o.entityId } })} />}
         </View>
       ))}

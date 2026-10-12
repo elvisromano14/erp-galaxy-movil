@@ -1,5 +1,6 @@
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { computeTotals } from '../../features/documents/calc';
+import { priceListFor, priceOf } from '../../features/documents/pricing';
 import { uuidv7 } from '../../core/uuid';
 import { caracasToday } from '../../core/format';
 import { META, getMeta, setMeta } from '../meta';
@@ -108,8 +109,9 @@ export function duplicateDocument(db: AppDb, id: string, now = new Date()): stri
 }
 
 /**
- * «Guardar y enviar»: confirma el documento localmente (número provisional, estado PENDING_SYNC) y encola `sales_quote.create`
- * en la MISMA transacción. Si ya había una operación pendiente del mismo documento, se reemplaza su contenido (coalescencia).
+ * «Guardar y enviar»: confirma el documento localmente (número provisional, estado PENDING_SYNC) y encola la operación en la
+ * MISMA transacción: `sales_quote.create` (crea y envía) o `sales_order.create` (crea y CONFIRMA en el servidor, con reserva).
+ * Si ya había una operación pendiente del mismo documento, se reemplaza su contenido (coalescencia).
  */
 export function submitDocument(db: AppDb, id: string, now = new Date()): DocRow {
   return db.transaction((tx) => {
@@ -117,23 +119,63 @@ export function submitDocument(db: AppDb, id: string, now = new Date()): DocRow 
     const doc = t.select().from(salesDocuments).where(eq(salesDocuments.id, id)).get();
     if (!doc) throw new DocumentError('Documento no encontrado', 'NOT_FOUND');
     if (!isEditable(doc)) throw new DocumentError('El documento ya se envió', 'NOT_EDITABLE');
-    if (doc.docType !== 'QUOTE') throw new DocumentError('Solo cotizaciones en esta versión', 'INVALID');
+    if (doc.docType !== 'QUOTE' && doc.docType !== 'ORDER') throw new DocumentError('Tipo de documento no soportado', 'INVALID');
     const lines = t.select().from(salesDocumentLines).where(eq(salesDocumentLines.documentId, id)).all();
     if (!lines.length) throw new DocumentError('El documento no tiene líneas', 'INVALID');
     const settings = getAppSettings(t);
     const number = doc.localNumber ?? nextLocalNumber(t);
     const row = t.update(salesDocuments).set({ localNumber: number, localStatus: 'PENDING_SYNC', syncError: null, updatedAt: now.toISOString() }).where(eq(salesDocuments.id, id)).returning().get();
+    const isOrder = doc.docType === 'ORDER';
     enqueue(t, {
-      entity: 'sales_quote', action: 'create', entityId: id, now,
+      entity: isOrder ? 'sales_order' : 'sales_quote', action: 'create', entityId: id, now,
       payload: {
         customerId: doc.customerId, currencyId: doc.currencyId, warehouseId: doc.warehouseId ?? settings.defaultWarehouseId, paymentCondition: doc.paymentCondition, creditDays: doc.creditDays,
-        validUntil: doc.validUntil, notes: doc.notes, send: true,
+        notes: doc.notes,
+        ...(isOrder ? (doc.sourceDocumentId ? { sourceQuoteId: doc.sourceDocumentId } : {}) : { validUntil: doc.validUntil, send: true }),
         // Sin permiso para editar precios, el servidor fija el precio (lista vigente): no se envía.
         lines: lines.map((l) => ({ productId: l.productId, quantity: l.quantity, discountPct: l.discountPct, description: l.description, ...(settings.allowPriceEdit ? { unitPrice: l.unitPrice } : {}) })),
       },
     });
     return row;
   });
+}
+
+/** Pedido ya generado a partir de una cotización (si existe). */
+export function convertedTo(db: AppDb, quoteId: string): DocRow | undefined {
+  return db.select().from(salesDocuments).where(and(eq(salesDocuments.sourceDocumentId, quoteId), eq(salesDocuments.docType, 'ORDER'))).get();
+}
+
+export interface ConversionResult { orderId: string; existing: boolean; /** la cotización estaba vencida: el pedido se crea SIN vínculo y con precios actualizados */ expired: boolean; repriced: boolean }
+
+/**
+ * Cotización → pedido (plan §9.4): abre un BORRADOR de pedido con las líneas copiadas y `source_document_id`. Si la cotización venció
+ * (`validUntil` < hoy) el servidor no la convierte: el pedido se crea sin vínculo y se revalidan los precios con la lista vigente.
+ * Sin permiso para editar precios, los precios siempre se re-resuelven con la lista del cliente.
+ */
+export function convertQuoteToOrder(db: AppDb, quoteId: string, now = new Date()): ConversionResult {
+  const v = getDocument(db, quoteId);
+  if (!v || v.doc.docType !== 'QUOTE') throw new DocumentError('Cotización no encontrada', 'NOT_FOUND');
+  if (v.doc.localStatus === 'REJECTED') throw new DocumentError('La cotización fue rechazada por el servidor: corríjala antes de convertirla', 'INVALID');
+  if (['REJECTED', 'EXPIRED'].includes(v.doc.serverStatus ?? '')) throw new DocumentError('La cotización está rechazada o vencida en el servidor', 'INVALID');
+  const prior = convertedTo(db, quoteId);
+  if (prior) return { orderId: prior.id, existing: true, expired: false, repriced: false };
+
+  const today = caracasToday(now);
+  const expired = !!v.doc.validUntil && v.doc.validUntil < today;
+  const settings = getAppSettings(db);
+  const list = priceListFor(db, v.doc.customerId);
+  let repriced = false;
+  const lines = v.lines.map((l) => {
+    const fresh = expired || !settings.allowPriceEdit ? priceOf(db, l.productId, list?.id ?? null, today) : null;
+    if (fresh !== null && fresh !== l.unitPrice) repriced = true;
+    return { productId: l.productId, sku: l.sku, description: l.description, quantity: l.quantity, unitPrice: fresh ?? l.unitPrice, discountPct: l.discountPct, taxId: l.taxId, taxRate: l.taxRate };
+  });
+  const orderId = saveDraft(db, {
+    docType: 'ORDER', customerId: v.doc.customerId, currencyId: v.doc.currencyId, paymentCondition: v.doc.paymentCondition as 'CASH' | 'CREDIT', creditDays: v.doc.creditDays,
+    validUntil: null, notes: expired ? `Basado en la cotización ${v.displayNumber} (vencida)${v.doc.notes ? ` · ${v.doc.notes}` : ''}` : v.doc.notes, warehouseId: v.doc.warehouseId,
+    sourceDocumentId: expired ? null : quoteId, lines,
+  }, now);
+  return { orderId, existing: false, expired, repriced };
 }
 
 /** Fecha de vencimiento por omisión de una cotización: hoy + 15 días (hora de Caracas). */

@@ -16,7 +16,8 @@ import { defaultCurrency, findByCode, getProductDetail, searchProducts } from '.
 import { fetchLiveStock } from '../../src/features/products/liveStock';
 import { caracasToday } from '../../src/core/format';
 import { createCustomerLocal, updateCustomerLocal } from '../../src/db/repositories/customers';
-import { getDocument, saveDraft, submitDocument } from '../../src/db/repositories/documents';
+import { convertQuoteToOrder, getDocument, saveDraft, submitDocument } from '../../src/db/repositories/documents';
+import { explainError } from '../../src/features/documents/explain';
 import { computeTotals } from '../../src/features/documents/calc';
 import { priceListFor, priceOf, productForLine } from '../../src/features/documents/pricing';
 import { outbox } from '../../src/db/schema';
@@ -217,6 +218,74 @@ run('Integración con el ERP real', () => {
     // el pull de «mis documentos» no la pisa ni la duplica
     await m.engine.run();
     expect(m.db.select().from(salesDocuments).all().filter((d) => d.serverId === synced.doc.serverId)).toHaveLength(1);
+  });
+
+  it('M5: pedido desde cero con reserva, cotización→pedido en el mismo lote, crédito en revisión y su resolución, anulación en la oficina y rechazo por producto inactivo', async () => {
+    const m = first; const today = caracasToday();
+    const own = m.db.select().from(customers).all().find((c) => c.legalName === 'Cliente de integración')!;
+    const list = priceListFor(m.db, own.id)!;
+    const mk = (sku: string, qty: string, disc = '0') => {
+      const p = m.db.select().from(products).all().find((x) => x.sku === sku)!; const info = productForLine(m.db, p.id)!;
+      return { productId: p.id, sku, description: null, quantity: qty, unitPrice: priceOf(m.db, p.id, list.id, today)!, discountPct: disc, taxId: info.taxId, taxRate: info.taxRate };
+    };
+    const base = { customerId: own.id, currencyId: list.currencyId, paymentCondition: 'CASH' as const, creditDays: 0, validUntil: null, notes: null, warehouseId: null };
+    const reservedOf = async (sku: string) => Number((await fetchLiveStock(m.api, m.db.select().from(products).all().find((x) => x.sku === sku)!.id)).warehouses[0].reserved);
+
+    // 1) pedido desde cero: el servidor lo crea y CONFIRMA, y reserva existencias
+    const before = await reservedOf('INT-001');
+    const o1 = saveDraft(m.db, { ...base, docType: 'ORDER', lines: [mk('INT-001', '2')] }); submitDocument(m.db, o1);
+    await m.engine.run();
+    const d1 = getDocument(m.db, o1)!;
+    expect(d1.doc).toMatchObject({ localStatus: 'SYNCED', serverStatus: 'CONFIRMED', serverNumber: expect.stringMatching(/^PED-\d{6}$/) });
+    expect((await admin(adminToken, 'GET', `/sales/orders/${d1.doc.serverId}`)).status).toBe('CONFIRMED');
+    expect(await reservedOf('INT-001')).toBe(before + 2);
+
+    // 2) cotización → pedido, ambos pendientes: salen en orden en el mismo lote y el pedido queda vinculado a la cotización
+    const q = saveDraft(m.db, { ...base, docType: 'QUOTE', validUntil: '2099-12-31', lines: [mk('INT-001', '1', '5'), mk('INT-002', '2')] }); submitDocument(m.db, q);
+    const conv = convertQuoteToOrder(m.db, q); submitDocument(m.db, conv.orderId);
+    expect((await m.engine.run())).toMatchObject({ rejected: 0, review: 0 });
+    const oq = getDocument(m.db, conv.orderId)!; const qq = getDocument(m.db, q)!;
+    expect(oq.doc).toMatchObject({ localStatus: 'SYNCED', serverStatus: 'CONFIRMED' });
+    const serverOrder = await admin(adminToken, 'GET', `/sales/orders/${oq.doc.serverId}`);
+    expect(serverOrder.links.parents[0].id).toBe(qq.doc.serverId); // vinculado a la cotización de origen
+    expect(Number(serverOrder.total)).toBe(Number(oq.doc.total)); // mismos totales que calculó el teléfono
+    await m.engine.run(); // el pull refleja el estado de la cotización en la oficina
+    expect(getDocument(m.db, q)!.doc.serverStatus).toBe('ACCEPTED');
+
+    // 3) crédito excedido → EN REVISIÓN (pedido en borrador); administración lo autoriza y el teléfono lo refleja
+    await admin(adminToken, 'PATCH', `/customers/${own.id}`, { creditLimit: '1', version: (await admin(adminToken, 'GET', `/customers/${own.id}`)).version });
+    const o3 = saveDraft(m.db, { ...base, docType: 'ORDER', paymentCondition: 'CREDIT', creditDays: 15, lines: [mk('INT-002', '4')] }); submitDocument(m.db, o3);
+    expect(await m.engine.run()).toMatchObject({ review: 1, rejected: 0 });
+    const d3 = getDocument(m.db, o3)!;
+    expect(d3.doc).toMatchObject({ localStatus: 'NEEDS_REVIEW', serverStatus: 'DRAFT' }); expect(explainError(d3.lastOpError)).toContain('administración debe revisarlo');
+    expect((await admin(adminToken, 'GET', `/sales/orders/${d3.doc.serverId}`)).status).toBe('DRAFT');
+    expect(m.session.state.queue).toBeDefined(); m.session.refreshQueue(); expect(m.session.state.queue.review).toBe(1);
+    await admin(adminToken, 'POST', `/sales/orders/${d3.doc.serverId}/confirm`, { overrideCredit: true });
+    await m.engine.run();
+    expect(getDocument(m.db, o3)!.doc).toMatchObject({ localStatus: 'SYNCED', serverStatus: 'CONFIRMED' });
+    m.session.refreshQueue(); expect(m.session.state.queue.review).toBe(0);
+    await admin(adminToken, 'PATCH', `/customers/${own.id}`, { creditLimit: '0', version: (await admin(adminToken, 'GET', `/customers/${own.id}`)).version });
+
+    // 4) anulación en la oficina → el teléfono muestra «Anulado»
+    await admin(adminToken, 'POST', `/sales/orders/${d1.doc.serverId}/cancel`, { reason: 'Prueba de integración' });
+    await m.engine.run();
+    expect(getDocument(m.db, o1)!.doc.serverStatus).toBe('CANCELLED');
+    expect(await reservedOf('INT-001')).toBeLessThan(before + 2 + 1 + 1); // la reserva del anulado se liberó
+
+    // 5) producto desactivado antes de sincronizar → RECHAZADO con motivo; se corrige quitando la línea y se reenvía
+    const units = await admin(adminToken, 'GET', '/units?limit=100'); const iva = (await admin(adminToken, 'GET', '/taxes?limit=100')).find((t: any) => t.code === 'IVA_GENERAL').id;
+    const np = await admin(adminToken, 'POST', '/products', { sku: 'INT-M5', name: 'Producto M5', unitId: units.find((u: any) => u.code === 'UND').id, taxId: iva });
+    await admin(adminToken, 'POST', `/products/${np.id}/prices`, { priceListId: list.id, price: '7' });
+    await m.engine.run(); // el pull trae el producto nuevo
+    const o5 = saveDraft(m.db, { ...base, docType: 'ORDER', lines: [mk('INT-M5', '1'), mk('INT-002', '1')] });
+    await admin(adminToken, 'PATCH', `/products/${np.id}`, { isActive: false, version: (await admin(adminToken, 'GET', `/products/${np.id}`)).version });
+    submitDocument(m.db, o5);
+    expect(await m.engine.run()).toMatchObject({ rejected: 1 });
+    const d5 = getDocument(m.db, o5)!;
+    expect(d5.doc.localStatus).toBe('REJECTED'); expect(explainError(d5.lastOpError)).toContain('Quite esa línea'); expect(d5.editable).toBe(true);
+    saveDraft(m.db, { ...base, docType: 'ORDER', id: o5, lines: [mk('INT-002', '1')] }); submitDocument(m.db, o5);
+    expect(await m.engine.run()).toMatchObject({ rejected: 0, applied: 1 });
+    expect(getDocument(m.db, o5)!.doc).toMatchObject({ localStatus: 'SYNCED', serverStatus: 'CONFIRMED' });
   });
 
   it('un segundo teléfono del mismo vendedor es rechazado; al revocar el primero, este se bloquea y el segundo ya puede registrarse', async () => {
