@@ -10,6 +10,7 @@ import { session } from '../core/services';
 import { startSyncTriggers } from '../sync/triggers';
 import { registerBackgroundSync } from '../sync/backgroundTask';
 import { db } from '../db/client';
+import { colors } from '../ui/kit';
 import migrations from '../db/migrations/migrations';
 
 /** Pantalla que corresponde a cada estado de la sesión (la navegación la gobierna el estado, no la UI). */
@@ -41,9 +42,9 @@ function Gate() {
     if (!ok) router.replace(target as never);
   }, [status, segments, router]);
 
-  if (status === 'booting') return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator /></View>;
+  if (status === 'booting') return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: '#0c111d' }}><ActivityIndicator color="#2e90fa" /></View>;
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, headerStyle: { backgroundColor: colors.card }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text } }}>
       <Stack.Screen name="product/[id]" options={{ headerShown: true, title: 'Producto' }} />
       <Stack.Screen name="customer/[id]" options={{ headerShown: true, title: 'Cliente' }} />
       <Stack.Screen name="customer/form" options={{ headerShown: true, title: 'Cliente' }} />
@@ -61,12 +62,12 @@ function Gate() {
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
   if (error) {
-    return <View style={{ flex: 1, justifyContent: 'center', padding: 24 }}><Text style={{ color: '#b42318' }}>No se pudo preparar la base local: {error.message}</Text></View>;
+    return <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#0c111d' }}><Text style={{ color: '#f97066' }}>No se pudo preparar la base local: {error.message}</Text></View>;
   }
-  if (!success) return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator /></View>;
+  if (!success) return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: '#0c111d' }}><ActivityIndicator color="#2e90fa" /></View>;
   return (
     <>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
       <Gate />
     </>
   );

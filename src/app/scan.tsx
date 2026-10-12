@@ -59,5 +59,5 @@ export default function Scan() {
 const s = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end', padding: 24 },
   hint: { color: '#fff', textAlign: 'center', fontSize: 16, backgroundColor: '#00000088', padding: 10, borderRadius: 8 },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, gap: 10 },
+  card: { backgroundColor: colors.card, borderRadius: 12, padding: 16, gap: 10 },
 });

@@ -1,15 +1,26 @@
 import { Tabs } from 'expo-router';
+import { View } from 'react-native';
 import { colors } from '../../ui/kit';
+import { MENU, MenuButton, SideMenu } from '../../ui/sideMenu';
 
-/** Pestañas principales (plan §9.1). Clientes y Documentos se agregan en M3–M5. */
+/**
+ * Módulos principales con menú lateral (hamburguesa): Inicio, Productos, Existencias, Clientes, Ventas y Más.
+ * Se usan `Tabs` sin barra inferior solo para conservar el estado de cada módulo; el menú lo dibuja `SideMenu`.
+ */
 export default function TabsLayout() {
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: colors.primary, headerShown: true }}>
-      <Tabs.Screen name="index" options={{ title: 'Inicio' }} />
-      <Tabs.Screen name="products" options={{ title: 'Productos' }} />
-      <Tabs.Screen name="customers" options={{ title: 'Clientes' }} />
-      <Tabs.Screen name="documents" options={{ title: 'Documentos' }} />
-      <Tabs.Screen name="more" options={{ title: 'Más' }} />
-    </Tabs>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <Tabs
+        tabBar={() => null}
+        screenOptions={{
+          headerShown: true, headerLeft: () => <MenuButton />,
+          headerStyle: { backgroundColor: colors.card }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text },
+          sceneStyle: { backgroundColor: colors.bg },
+        }}
+      >
+        {MENU.map((m) => <Tabs.Screen key={m.key} name={m.key} options={{ title: m.title }} />)}
+      </Tabs>
+      <SideMenu />
+    </View>
   );
 }

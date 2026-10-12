@@ -12,11 +12,13 @@ const lum = (hex: string) => {
 const contrast = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 
 describe('accesibilidad (WCAG AA: texto normal ≥ 4,5:1)', () => {
-  it('la paleta cumple el contraste sobre fondo blanco y en las alertas', () => {
-    for (const k of ['text', 'muted', 'primary', 'error', 'ok'] as const) expect(contrast(colors[k], '#ffffff')).toBeGreaterThanOrEqual(4.5);
+  it('la paleta oscura cumple el contraste sobre el fondo, las tarjetas y las alertas', () => {
+    for (const bg of [colors.bg, colors.card]) {
+      for (const k of ['text', 'muted', 'primary', 'error', 'ok', 'warn'] as const) expect(contrast(colors[k], bg)).toBeGreaterThanOrEqual(4.5);
+    }
     expect(contrast(colors.warn, colors.warnBg)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast('#ffffff', colors.primary)).toBeGreaterThanOrEqual(4.5); // texto blanco de los botones
-    expect(contrast('#ffffff', colors.error)).toBeGreaterThanOrEqual(4.5);   // botón de peligro
+    expect(contrast(colors.onPrimary, colors.primaryBg)).toBeGreaterThanOrEqual(4.5); // texto de los botones y chips activos
+    expect(contrast(colors.onPrimary, colors.errorBg)).toBeGreaterThanOrEqual(4.5);   // botón de peligro
   });
 });
 

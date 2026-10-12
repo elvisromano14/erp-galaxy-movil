@@ -41,14 +41,14 @@ export default function Documents() {
       <View style={s.chips}>
         {([['ALL', 'Todo'], ['QUOTE', 'Cotizaciones'], ['ORDER', 'Pedidos']] as const).map(([k, label]) => (
           <Pressable key={k} onPress={() => setType(k)} style={[s.chip, type === k && s.chipOn]} accessibilityRole="button" accessibilityState={{ selected: type === k }}>
-            <Text style={{ color: type === k ? '#fff' : colors.text, fontSize: 13 }}>{label}</Text>
+            <Text style={{ color: type === k ? colors.onPrimary : colors.text, fontSize: 13 }}>{label}</Text>
           </Pressable>
         ))}
       </View>
       <View style={s.chips}>
         {FILTERS.map((f) => (
           <Pressable key={f.key} onPress={() => setFilter(f.key)} style={[s.chip, filter === f.key && s.chipOn]} accessibilityRole="button" accessibilityState={{ selected: filter === f.key }}>
-            <Text style={{ color: filter === f.key ? '#fff' : colors.text, fontSize: 13 }}>{f.label}</Text>
+            <Text style={{ color: filter === f.key ? colors.onPrimary : colors.text, fontSize: 13 }}>{f.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -84,10 +84,10 @@ function Row({ item, onPress }: { item: DocListRow; onPress: () => void }) {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.bg },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 12 },
   chip: { borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
-  chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipOn: { backgroundColor: colors.primaryBg, borderColor: colors.primaryBg },
   row: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, alignItems: 'center' },
   num: { fontWeight: '700', color: colors.text },
   muted: { color: colors.muted },

@@ -19,10 +19,10 @@ export default (): ExpoConfig => ({
   name: env === 'prod' ? 'ERP Ventas' : `ERP Ventas (${env})`,
   slug: 'erp-galaxy-movil',
   scheme: 'erpventas',
-  version: '0.1.1',
+  version: '0.1.2',
   orientation: 'portrait',
   icon: './assets/icon.png',
-  userInterfaceStyle: 'automatic',
+  userInterfaceStyle: 'dark',
   android: {
     package: `com.galaxy.erpventas${suffix}`,
     // Número de versión para Play: el CI lo fija con VERSION_CODE (debe crecer en cada publicación).

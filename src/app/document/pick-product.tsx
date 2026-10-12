@@ -17,7 +17,7 @@ export default function PickProduct() {
   const currency = useMemo(() => defaultCurrency(db), []);
   const rows = useMemo(() => searchProducts(db, { query, limit: 100, today: caracasToday() }), [query]);
   return (
-    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ flexDirection: 'row', gap: 8, padding: 12, alignItems: 'center' }}>
         <TextInput style={s.input} value={text} onChangeText={setText} placeholder="SKU, nombre, OEM o código" placeholderTextColor={colors.muted} autoCapitalize="none" autoFocus accessibilityLabel="Buscar producto" />
         <Button title="Escanear" kind="secondary" onPress={() => router.push({ pathname: '/scan', params: { pick: '1' } })} />

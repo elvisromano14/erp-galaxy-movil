@@ -15,7 +15,7 @@ export default function PickCustomer() {
   useEffect(() => { const t = setTimeout(() => setQuery(text), 200); return () => clearTimeout(t); }, [text]);
   const rows = useMemo(() => searchCustomers(db, { query, limit: 100 }), [query]);
   return (
-    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <TextInput style={s.input} value={text} onChangeText={setText} placeholder="RIF o razón social" placeholderTextColor={colors.muted} autoCapitalize="none" autoFocus accessibilityLabel="Buscar cliente" />
       <FlashList
         data={rows} keyExtractor={(r) => r.id} keyboardShouldPersistTaps="handled"

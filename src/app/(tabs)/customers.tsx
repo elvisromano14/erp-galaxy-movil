@@ -65,7 +65,7 @@ function Row({ item, onPress }: { item: CustomerListRow; onPress: () => void }) 
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.bg },
   bar: { flexDirection: 'row', gap: 8, padding: 12, alignItems: 'center' },
   input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, fontSize: 16, color: colors.text },
   row: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, alignItems: 'center' },

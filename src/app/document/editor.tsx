@@ -231,6 +231,6 @@ const s = StyleSheet.create({
   line: { flexDirection: 'row', gap: 12, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   totals: { gap: 4, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border },
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000066' },
-  sheet: { backgroundColor: '#fff', padding: 16, gap: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  sheet: { backgroundColor: colors.card, padding: 16, gap: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
 });
 void TextInput;
