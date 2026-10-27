@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextInputProps, View } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, type TextInputProps, View } from 'react-native';
 
 // Componentes base mínimos (M1). La biblioteca de UI definitiva se decide con las pantallas de negocio (decisión #13).
 /** Tema oscuro fijo (la app siempre se ve oscura). `bg` fondo de pantalla, `card` tarjetas/hojas, `onPrimary` texto sobre el color primario. */
@@ -53,6 +53,55 @@ export const Field = (p: TextInputProps & { label: string }) => (
   </View>
 );
 
+export interface SelectOption { id: string; label: string }
+
+/**
+ * Selector de lista (unidad, categoría, ubicación…): botón con el valor actual y una hoja con búsqueda. `onChange(null)` = sin selección
+ * (solo si `allowEmpty`). Sin dependencias nativas nuevas: usa `Modal` de React Native.
+ */
+export function Select({ label, value, options, onChange, allowEmpty = false, emptyLabel = 'Ninguna', placeholder = 'Seleccionar…', disabled }: {
+  label: string; value: string | null; options: SelectOption[]; onChange: (id: string | null) => void; allowEmpty?: boolean; emptyLabel?: string; placeholder?: string; disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const current = options.find((o) => o.id === value);
+  const shown = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    return t ? options.filter((o) => o.label.toLowerCase().includes(t)) : options;
+  }, [options, q]);
+  const close = () => { setOpen(false); setQ(''); };
+  return (
+    <View style={{ gap: 4 }}>
+      <Text style={s.label}>{label}</Text>
+      <Pressable onPress={() => setOpen(true)} disabled={disabled} accessibilityRole="button" accessibilityLabel={`${label}: ${current?.label ?? 'sin seleccionar'}`} style={[s.input, s.select, disabled && { opacity: 0.5 }]}>
+        <Text style={{ color: current ? colors.text : colors.muted, fontSize: 16, flex: 1 }} numberOfLines={1}>{current?.label ?? (allowEmpty ? emptyLabel : placeholder)}</Text>
+        <Ionicons name="chevron-down" size={18} color={colors.muted} />
+      </Pressable>
+      <Modal visible={open} transparent animationType="slide" onRequestClose={close}>
+        <View style={s.sheetBack}>
+          <View style={s.sheet}>
+            <Text style={[s.label, { fontSize: 16 }]}>{label}</Text>
+            {options.length > 8 && <TextInput value={q} onChangeText={setQ} placeholder="Buscar…" placeholderTextColor={colors.muted} keyboardAppearance="dark" autoCapitalize="none" style={s.input} accessibilityLabel={`Buscar en ${label}`} />}
+            <FlatList
+              data={allowEmpty ? [{ id: '', label: emptyLabel }, ...shown] : shown}
+              keyExtractor={(o) => o.id || '__none'}
+              keyboardShouldPersistTaps="handled"
+              ListEmptyComponent={<Text style={s.muted}>Sin opciones.</Text>}
+              renderItem={({ item }) => (
+                <Pressable onPress={() => { onChange(item.id || null); close(); }} style={s.option} accessibilityRole="button">
+                  <Text style={{ color: item.id === (value ?? '') ? colors.primary : colors.text, fontSize: 16, flex: 1 }}>{item.label}</Text>
+                  {item.id === (value ?? '') && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                </Pressable>
+              )}
+            />
+            <Button title="Cancelar" kind="secondary" onPress={close} />
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
 export const Busy = ({ show }: { show: boolean }) => (show ? <ActivityIndicator accessibilityLabel="Cargando" color={colors.primary} /> : null);
 
 export function Badge({ text, tone = 'muted' }: { text: string; tone?: 'muted' | 'warn' | 'error' | 'ok' }) {
@@ -74,5 +123,9 @@ const s = StyleSheet.create({
   btnSecondary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.primary },
   btnDanger: { backgroundColor: colors.errorBg },
   btnText: { fontWeight: '600', fontSize: 16 },
+  select: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sheetBack: { flex: 1, backgroundColor: '#000000aa', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 10, maxHeight: '80%' },
+  option: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   banner: { backgroundColor: colors.warnBg, borderRadius: 8, padding: 12 },
 });

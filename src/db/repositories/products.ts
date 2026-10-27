@@ -3,7 +3,9 @@ import type { AppDb } from '../types';
 import { normalizeText } from '../../sync/normalize';
 
 export interface ProductRow {
-  id: string; sku: string; name: string; categoryName: string | null; unitCode: string | null; isService: boolean;
+  id: string; sku: string; name: string; categoryName: string | null; unitCode: string | null; isService: boolean; brand: string | null;
+  /** Creado en este teléfono y aún sin confirmar por el servidor. */
+  isLocal: boolean;
   /** Precio vigente de la lista por omisión (texto decimal) o null si no tiene. */
   price: string | null;
   /** Existencia disponible total (cantidad − reservado), solo para mostrar en listas. */
@@ -40,8 +42,8 @@ export function searchProducts(db: AppDb, o: SearchOptions): ProductRow[] {
   const listId = defaultPriceListId(db);
   const where = [sql`p.is_active = 1`, ...tokens.map((t) => sql`p.search_text LIKE ${'%' + esc(t) + '%'} ESCAPE '\\'`)];
   if (o.inStockOnly) where.push(sql`(SELECT COALESCE(SUM(CAST(s.quantity AS REAL) - CAST(s.reserved AS REAL)), 0) FROM stock_snapshots s WHERE s.product_id = p.id) > 0`);
-  const rows = db.all<Omit<ProductRow, 'isService'> & { isService: number }>(sql`
-    SELECT p.id, p.sku, p.name, p.category_name AS categoryName, p.unit_code AS unitCode, p.is_service AS isService,
+  const rows = db.all<Omit<ProductRow, 'isService' | 'isLocal'> & { isService: number; isLocal: number }>(sql`
+    SELECT p.id, p.sku, p.name, p.category_name AS categoryName, p.unit_code AS unitCode, p.is_service AS isService, p.brand AS brand, p.is_local AS isLocal,
       (SELECT pp.price FROM product_prices pp WHERE pp.product_id = p.id AND pp.price_list_id = ${listId} AND pp.valid_from <= ${o.today}
         ORDER BY pp.valid_from DESC LIMIT 1) AS price,
       (SELECT COALESCE(SUM(CAST(s.quantity AS REAL) - CAST(s.reserved AS REAL)), 0) FROM stock_snapshots s WHERE s.product_id = p.id) AS available
@@ -49,7 +51,7 @@ export function searchProducts(db: AppDb, o: SearchOptions): ProductRow[] {
     WHERE ${sql.join(where, sql` AND `)}
     ORDER BY CASE WHEN lower(p.sku) = ${q} THEN 0 WHEN lower(p.sku) LIKE ${esc(q) + '%'} ESCAPE '\\' THEN 1 ELSE 2 END, p.name
     LIMIT ${o.limit ?? 50} OFFSET ${o.offset ?? 0}`);
-  return rows.map((r) => ({ ...r, isService: !!r.isService }));
+  return rows.map((r) => ({ ...r, isService: !!r.isService, isLocal: !!r.isLocal }));
 }
 
 /** Producto por código escaneado: código de barras, luego SKU exacto y por último referencia OEM exacta. */
@@ -69,6 +71,10 @@ export interface StockLine { warehouseId: string; code: string; name: string; qu
 export interface ProductDetail {
   id: string; sku: string; name: string; description: string | null; categoryName: string | null; unitCode: string | null; trackingMode: string; isService: boolean;
   tax: { name: string; rate: string } | null;
+  brand: string | null; location: { id: string; code: string; name: string } | null;
+  minStock: string | null; maxStock: string | null;
+  /** Para editar/mostrar el estado de envío. */
+  version: number; isLocal: boolean;
   references: { kind: string; code: string; brand: string | null }[];
   barcodes: string[];
   prices: PriceLine[];
@@ -78,10 +84,11 @@ export interface ProductDetail {
 export function getProductDetail(db: AppDb, id: string | undefined, today: string): ProductDetail | null {
   // drizzle omite en silencio un parámetro `undefined` (queda «WHERE p.id = » → SQLite: «incomplete input»): se valida antes.
   if (typeof id !== 'string' || !id) return null;
-  const p = db.all<{ id: string; sku: string; name: string; description: string | null; categoryName: string | null; unitCode: string | null; trackingMode: string; isService: number; taxName: string | null; taxRate: string | null }>(sql`
+  const p = db.all<{ id: string; sku: string; name: string; description: string | null; categoryName: string | null; unitCode: string | null; trackingMode: string; isService: number; taxName: string | null; taxRate: string | null; brand: string | null; minStock: string | null; maxStock: string | null; version: number; isLocal: number; locId: string | null; locCode: string | null; locName: string | null }>(sql`
     SELECT p.id, p.sku, p.name, p.description, p.category_name AS categoryName, p.unit_code AS unitCode, p.tracking_mode AS trackingMode, p.is_service AS isService,
-           t.name AS taxName, t.rate AS taxRate
-    FROM products p LEFT JOIN taxes t ON t.id = p.tax_id WHERE p.id = ${id}`)[0];
+           t.name AS taxName, t.rate AS taxRate, p.brand AS brand, p.min_stock AS minStock, p.max_stock AS maxStock, p.version AS version, p.is_local AS isLocal,
+           l.id AS locId, l.code AS locCode, l.name AS locName
+    FROM products p LEFT JOIN taxes t ON t.id = p.tax_id LEFT JOIN locations l ON l.id = p.location_id WHERE p.id = ${id}`)[0];
   if (!p) return null;
   const refs = db.all<{ kind: string; code: string; brand: string | null }>(sql`SELECT kind, code, brand FROM product_refs WHERE product_id = ${id} ORDER BY kind, code`);
   const prices = db.all<PriceLine>(sql`
@@ -97,6 +104,8 @@ export function getProductDetail(db: AppDb, id: string | undefined, today: strin
   return {
     id: p.id, sku: p.sku, name: p.name, description: p.description, categoryName: p.categoryName, unitCode: p.unitCode, trackingMode: p.trackingMode, isService: !!p.isService,
     tax: p.taxName ? { name: p.taxName, rate: p.taxRate ?? '0' } : null,
+    brand: p.brand, location: p.locId ? { id: p.locId, code: p.locCode ?? '', name: p.locName ?? '' } : null,
+    minStock: p.minStock, maxStock: p.maxStock, version: p.version, isLocal: !!p.isLocal,
     references: refs.filter((r) => r.kind !== 'BARCODE'), barcodes: refs.filter((r) => r.kind === 'BARCODE').map((r) => r.code), prices, stock,
   };
 }

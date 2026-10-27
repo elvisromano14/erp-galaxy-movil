@@ -15,6 +15,13 @@
       "when": 1791765759183,
       "tag": "0001_moaning_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793112149598,
+      "tag": "0002_new_onslaught",
+      "breakpoints": true
     }
   ]
 }

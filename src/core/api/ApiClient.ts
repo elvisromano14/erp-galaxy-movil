@@ -20,6 +20,8 @@ export interface ApiClientOptions {
   /** Se invoca cuando no hay forma de renovar la sesión (refresh inválido/revocado). */
   onSessionExpired?: () => void;
   fetchImpl?: typeof fetch;
+  /** `fetch` con respuesta en flujo (en la app: `expo/fetch`) para descargas grandes; por omisión `fetchImpl`. */
+  streamFetchImpl?: typeof fetch;
   timeoutMs?: number;
 }
 
@@ -58,6 +60,27 @@ export class ApiClient {
       return this.parse<T>(await this.send(method, path, o));
     }
     return this.parse<T>(res);
+  }
+
+  /**
+   * Respuesta cruda de una ruta autenticada para descargas grandes (APK): cuerpo en flujo, sin el tiempo de espera corto, con `Range`
+   * opcional. Renueva la sesión si recibe 401. 200, 206 y 416 se devuelven tal cual (el que descarga decide); otro error lanza `ApiError`.
+   */
+  async stream(path: string, o: { range?: { from: number }; signal?: AbortSignal } = {}): Promise<Response> {
+    const f = this.opts.streamFetchImpl ?? this.f;
+    const once = async () => {
+      const url = `${this.opts.baseUrl.replace(/\/$/, '')}/api/v1${path}`;
+      const headers: Record<string, string> = { accept: 'application/vnd.android.package-archive', 'x-app-version': this.opts.appVersion };
+      if (this.access) headers.authorization = `Bearer ${this.access}`;
+      const device = this.opts.getDeviceId?.();
+      if (device) headers['x-device-id'] = device;
+      if (o.range) headers.range = `bytes=${o.range.from}-`;
+      try { return await f(url, { method: 'GET', headers, signal: o.signal }); } catch { throw new ApiError(0, 'NETWORK_ERROR', 'Sin conexión con el servidor'); }
+    };
+    let res = await once();
+    if (res.status === 401 && (await this.refresh())) res = await once();
+    if (res.status === 200 || res.status === 206 || res.status === 416) return res;
+    return this.parse<never>(res);
   }
 
   /** Renueva la sesión una sola vez aunque lleguen varias respuestas 401 a la vez. */

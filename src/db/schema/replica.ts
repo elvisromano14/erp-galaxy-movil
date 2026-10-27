@@ -11,6 +11,16 @@ export const products = sqliteTable('products', {
   categoryName: text('category_name'),
   unitCode: text('unit_code'),
   taxId: text('tax_id'),
+  /** Ids de catálogo (para editar el producto desde el móvil; `categoryName`/`unitCode` son los que se muestran). */
+  categoryId: text('category_id'),
+  unitId: text('unit_id'),
+  /** Marca (texto libre, opcional) y ubicación física (id de `locations`, opcional). */
+  brand: text('brand'),
+  locationId: text('location_id'),
+  minStock: text('min_stock'),
+  maxStock: text('max_stock'),
+  /** El producto fue creado en este dispositivo y aún no se sincroniza. */
+  isLocal: integer('is_local', { mode: 'boolean' }).notNull().default(false),
   trackingMode: text('tracking_mode').notNull().default('NONE'),
   isService: integer('is_service', { mode: 'boolean' }).notNull().default(false),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
@@ -34,6 +44,13 @@ export const productPrices = sqliteTable('product_prices', {
   price: text('price').notNull(),
   validFrom: text('valid_from').notNull(),
 }, (t) => [index('idx_product_prices_product').on(t.productId, t.priceListId)]);
+
+/** Catálogos pequeños (reemplazo completo en cada pull) para los selectores del formulario de producto. */
+export const locations = sqliteTable('locations', {
+  id: text('id').primaryKey(), code: text('code').notNull(), name: text('name').notNull(), isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+});
+export const units = sqliteTable('units', { id: text('id').primaryKey(), code: text('code').notNull(), name: text('name').notNull() });
+export const categories = sqliteTable('categories', { id: text('id').primaryKey(), code: text('code').notNull(), name: text('name').notNull(), parentId: text('parent_id') });
 
 export const stockSnapshots = sqliteTable('stock_snapshots', {
   id: text('id').primaryKey(),

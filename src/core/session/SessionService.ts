@@ -26,6 +26,8 @@ export interface SessionState {
   permissions: string[];
   deviceCode: string | null;
   blocked: { reason: BlockReason; message: string } | null;
+  /** Versión mínima que exige el servidor (la última consulta de `app/config`); null si no se conoce. */
+  minAppVersion: string | null;
   /** Mensaje de mantenimiento del servidor (no bloquea: se muestra como aviso). */
   maintenance: string | null;
   /** false = sin conexión al servidor (se puede trabajar con los datos locales). */
@@ -39,7 +41,7 @@ export interface SessionState {
 }
 
 const initial: SessionState = {
-  status: 'booting', companies: [], profile: null, permissions: [], deviceCode: null, blocked: null, maintenance: null, online: true,
+  status: 'booting', companies: [], profile: null, permissions: [], deviceCode: null, blocked: null, minAppVersion: null, maintenance: null, online: true,
   bootstrap: null, busy: false, error: null, lastSyncAt: null, queue: { pending: 0, rejected: 0, review: 0 },
 };
 
@@ -112,7 +114,7 @@ export class SessionService {
       if (this.d.versionLt(this.d.appVersion, cfg.minAppVersion)) {
         this.set({ status: 'blocked', blocked: { reason: 'UPGRADE_REQUIRED', message: `Actualice la aplicación (versión mínima ${cfg.minAppVersion}). Sus pendientes se conservan.` } });
       }
-      this.set({ maintenance: cfg.maintenance?.message ?? null });
+      this.set({ maintenance: cfg.maintenance?.message ?? null, minAppVersion: cfg.minAppVersion });
       return true;
     } catch { return false; }
   }

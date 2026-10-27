@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { env, session } from '../../core/services';
+import { useUpdate } from '../../features/update/hooks';
 import { useSession } from '../../core/session/hooks';
 import { Banner, Busy, Button, Card, colors, ErrorText, Muted, Screen, Title } from '../../ui/kit';
 
@@ -16,6 +17,7 @@ export default function More() {
   const maintenance = useSession((s) => s.maintenance);
   const queue = useSession((s) => s.queue);
   const waiting = queue.pending + queue.rejected + queue.review;
+  const newVersion = useUpdate((s) => (s.kind !== 'none' ? s.info?.version ?? null : null));
 
   function logout() {
     const pending = session.pendingCount();
@@ -47,6 +49,7 @@ export default function More() {
       <Button title="Bloquear" kind="secondary" onPress={() => session.lock()} />
       <Button title="Cerrar sesión" kind="danger" onPress={logout} />
       <View style={{ height: 8 }} />
+      <Button title={newVersion ? `Actualizar la app (v${newVersion})` : 'Buscar actualización'} kind="secondary" icon="cloud-download-outline" onPress={() => router.push('/update')} />
       <Button title="Diagnóstico" kind="secondary" onPress={() => router.push('/diagnostics')} />
       <Button title="Restablecer datos descargados" kind="secondary" onPress={reset} />
       <Muted>Restablecer y cerrar sesión no borran sus operaciones pendientes de envío.</Muted>

@@ -9,7 +9,7 @@ export const MAX_RETRY_WAIT_MS = 2 * 3_600_000;
 
 export type OutboxStatus = 'PENDING' | 'SENDING' | 'DONE' | 'REJECTED' | 'REVIEW';
 export type OutboxRow = typeof outbox.$inferSelect;
-export type SyncEntityName = 'customer' | 'sales_quote' | 'sales_order';
+export type SyncEntityName = 'customer' | 'product' | 'sales_quote' | 'sales_order';
 
 /** Siguiente número de secuencia del dispositivo (monótono). Debe llamarse DENTRO de la transacción que crea la operación. */
 export function nextSeq(db: AppDb): number {

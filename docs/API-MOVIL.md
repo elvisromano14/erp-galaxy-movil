@@ -76,3 +76,6 @@ Reglas del servidor:
 | `DEVICE_UNKNOWN` / `DEVICE_REQUIRED` | 403 / 400 | volver a registrar el dispositivo |
 | `SELLER_REQUIRED` | 422 | avisar: administración debe ligar el usuario a un vendedor |
 | 401 | | renovar con el refresh token (single-flight); si falla, pedir login (la cola se conserva) |
+
+## Productos, catálogos nuevos y actualización de la app (v0.2.0)
+El contrato del servidor está en el repositorio del ERP: `docs/API-MOVIL-PRODUCTOS.md` (entidades de pull `locations`, `units`, `categories`; campos nuevos de `products`; `app_settings.allowProductCreate/allowProductUpdate`; push `product.create` / `product.update` y sus rechazos) y `docs/API-MOVIL-ACTUALIZACION.md` (`GET /mobile/app/latest` y `GET /mobile/app/latest/file` con sesión, `Range` y `Cache-Control: no-store`). La app los consume en `src/db/repositories/productEdit.ts`, `src/sync/SqlitePullStore.ts` y `src/features/update/`.

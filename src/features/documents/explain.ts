@@ -19,7 +19,12 @@ const HELP: Record<string, string> = {
   SELLER_REQUIRED: 'Su usuario no está ligado a un vendedor. Pida a administración que lo asigne.',
   FORBIDDEN: 'Su usuario no tiene permiso para esta operación.',
   DEPENDENCY_REJECTED: 'Depende de otra operación que fue rechazada (por ejemplo, el alta de un cliente). Corrija primero esa operación.',
-  VALIDATION_ERROR: 'Algún dato del documento no es válido. Revise los campos y reenvíe.',
+  VALIDATION_ERROR: 'Algún dato no es válido. Revise los campos y reenvíe.',
+  LOCATION_NOT_FOUND: 'La ubicación elegida ya no existe en el sistema. Edite el producto y elija otra (o déjela vacía).',
+  VERSION_CONFLICT: 'El producto cambió en la oficina mientras usted lo editaba. Sincronice para bajar la versión nueva y vuelva a guardar sus cambios.',
+  PRICE_LIST_REQUIRED: 'La empresa no tiene una lista de precios predeterminada: quite el precio o pida a administración que la configure.',
+  FEATURE_DISABLED: 'La empresa no permite este tipo de producto desde el móvil. Avise a administración.',
+  INVALID_TRACKING: 'Los productos con lotes o seriales se crean y editan desde la oficina.',
 };
 
 /** Convierte «CODIGO: mensaje» (lo que guarda la cola) en una explicación comprensible con qué hacer. */

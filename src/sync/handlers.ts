@@ -1,4 +1,5 @@
 import { remapCustomer } from '../db/repositories/customers';
+import { remapProduct } from '../db/repositories/productEdit';
 import { salesDocHandler } from './docHandlers';
 import type { ResultHandler } from './SyncEngine';
 
@@ -10,4 +11,11 @@ export const customerHandler: ResultHandler = {
   },
 };
 
-export const defaultHandlers = { customer: customerHandler, sales_quote: salesDocHandler, sales_order: salesDocHandler };
+/** Productos: el alta confirmada (o vinculada por SKU a uno existente) hace que la fila local adopte el id del servidor. La edición la trae el pull. */
+export const productHandler: ResultHandler = {
+  applied(db, op, r) {
+    if (op.action === 'create' && r.serverId) remapProduct(db, op.entityId, r.serverId);
+  },
+};
+
+export const defaultHandlers = { customer: customerHandler, product: productHandler, sales_quote: salesDocHandler, sales_order: salesDocHandler };

@@ -3,7 +3,7 @@ import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { PullEntity, PullPage } from '../core/api/contract';
 import { META, getMeta, setMeta, setJson } from '../db/meta';
 import {
-  appSettings, currencies, customers, exchangeRates, outbox, priceLists, productPrices, productRefs, products, salesDocumentLines, salesDocuments, stockSnapshots, taxes, warehouses,
+  appSettings, categories, currencies, customers, exchangeRates, locations, outbox, priceLists, productPrices, productRefs, products, salesDocumentLines, salesDocuments, stockSnapshots, taxes, units, warehouses,
 } from '../db/schema';
 import type { AppDb } from '../db/types';
 import { normalizeText } from './normalize';
@@ -47,6 +47,9 @@ export class SqlitePullStore implements PullStore {
           id: i.id, code: i.code, name: i.name, currencyId: i.currencyId, isDefault: !!i.isDefault })), 5); break;
         case 'warehouses': this.replaceAll(db, warehouses, items.filter((i) => !i.deletedAt).map((i) => ({
           id: i.id, code: i.code, name: i.name, isActive: i.isActive !== false })), 4); break;
+        case 'locations': this.replaceAll(db, locations, items.filter((i) => !i.deletedAt).map((i) => ({ id: i.id, code: i.code, name: i.name, isActive: i.isActive !== false })), 4); break;
+        case 'units': this.replaceAll(db, units, items.filter((i) => !i.deletedAt).map((i) => ({ id: i.id, code: i.code, name: i.name })), 3); break;
+        case 'categories': this.replaceAll(db, categories, items.filter((i) => !i.deletedAt).map((i) => ({ id: i.id, code: i.code, name: i.name, parentId: i.parentId ?? null })), 4); break;
         case 'exchange_rates': this.replaceAll(db, exchangeRates, items.map((i) => ({
           id: i.id, currencyId: i.currencyId, rate: String(i.rate), date: day(i.date), source: i.source })), 5); break;
         case 'customers': this.customers(db, items); break;
@@ -96,11 +99,13 @@ export class SqlitePullStore implements PullStore {
       const barcodes: string[] = p.barcodes ?? [];
       return {
         id: p.id, sku: p.sku, name: p.name, description: p.description ?? null, categoryName: p.categoryName ?? null, unitCode: p.unitCode ?? null, taxId: p.taxId ?? null,
+        categoryId: p.categoryId ?? null, unitId: p.unitId ?? null, brand: p.brand ?? null, locationId: p.locationId ?? null,
+        minStock: p.minStock != null ? String(p.minStock) : null, maxStock: p.maxStock != null ? String(p.maxStock) : null, isLocal: false,
         trackingMode: p.trackingMode ?? 'NONE', isService: !!p.isService, isActive: p.isActive !== false && !p.deletedAt,
-        searchText: normalizeText(p.sku, p.name, p.description, refs.map((r) => r.code).join(' '), barcodes.join(' ')), version: p.version ?? 1,
+        searchText: normalizeText(p.sku, p.name, p.brand, p.description, refs.map((r) => r.code).join(' '), barcodes.join(' ')), version: p.version ?? 1,
       };
     });
-    chunked(rows, 11, (chunk) => db.insert(products).values(chunk).onConflictDoUpdate({
+    chunked(rows, 18, (chunk) => db.insert(products).values(chunk).onConflictDoUpdate({
       target: products.id, set: setFrom(getTableColumns(products), ['id']), setWhere: sql`excluded."version" >= ${products.version}`,
     }).run());
     // Referencias y códigos de barras: se reemplazan las de los productos de la página.

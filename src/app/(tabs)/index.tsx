@@ -7,6 +7,7 @@ import { usePermission, useSession } from '../../core/session/hooks';
 import { type DocListRow, listDocuments } from '../../db/repositories/documents';
 import { type DashboardStats, dashboardStats } from '../../db/repositories/stats';
 import { currencyOf } from '../../features/documents/pricing';
+import { useUpdate } from '../../features/update/hooks';
 import { Badge, Banner, Button, colors, Icon, type IconName, Muted } from '../../ui/kit';
 import { STATUS_LABEL } from './documents';
 
@@ -21,6 +22,7 @@ export default function Home() {
   const maintenance = useSession((s) => s.maintenance);
   const queue = useSession((s) => s.queue);
   const canQuote = usePermission('sales:quotes:create');
+  const newVersion = useUpdate((s) => (s.kind !== 'none' ? s.info?.version ?? null : null));
   const [focused, setFocused] = useState(0);
   useFocusEffect(useCallback(() => { setFocused((n) => n + 1); }, []));
   // se recalcula al volver a la pantalla, al cambiar la cola y tras cada sincronización
@@ -40,6 +42,7 @@ export default function Home() {
         <Text style={s.hello}>Hola, {profile?.user.fullName?.split(' ')[0] ?? 'vendedor'}</Text>
         <Muted>{profile?.company?.tradeName ?? profile?.company?.legalName} · Última sincronización: {lastSync ? new Date(lastSync).toLocaleString('es-VE') : 'nunca'}</Muted>
       </View>
+      {newVersion && <Pressable onPress={() => router.push('/update')}><Banner>Hay una versión nueva de la app ({newVersion}) — toque para actualizar</Banner></Pressable>}
       {maintenance && <Banner>{maintenance}</Banner>}
       {!online && <Banner>Sin conexión con el servidor. Trabaja con los datos de este teléfono.</Banner>}
       {error && <Banner>{error}</Banner>}

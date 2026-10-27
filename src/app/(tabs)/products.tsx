@@ -1,11 +1,13 @@
 import { FlashList } from '@shopify/flash-list';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { caracasToday, formatMoney, formatQty } from '../../core/format';
 import { db } from '../../core/services';
+import { usePermission } from '../../core/session/hooks';
+import { getAppSettings } from '../../db/repositories/settings';
 import { defaultCurrency, productCount, searchProducts, type ProductRow } from '../../db/repositories/products';
-import { Button, colors, Muted } from '../../ui/kit';
+import { Badge, Button, colors, Muted } from '../../ui/kit';
 
 const PAGE = 50;
 
@@ -22,13 +24,19 @@ export default function Products() {
   const [inStock, setInStock] = useState(false);
   const [limit, setLimit] = useState(PAGE);
   const today = caracasToday();
+  const hasCreatePerm = usePermission('admin:products:create');
+  const allowCreate = useMemo(() => getAppSettings(db).allowProductCreate, []);
+  const canCreate = hasCreatePerm && allowCreate;
+  // Al volver (de crear/editar un producto o de sincronizar) se relee la lista.
+  const [tick, setTick] = useState(0);
+  useFocusEffect(useCallback(() => { setTick((t) => t + 1); }, []));
 
   // pausa breve al escribir para no consultar en cada tecla
   useEffect(() => { const t = setTimeout(() => { setQuery(text); setLimit(PAGE); }, 200); return () => clearTimeout(t); }, [text]);
 
-  const total = useMemo(() => productCount(db), []);
+  const total = useMemo(() => { void tick; return productCount(db); }, [tick]);
   const currency = useMemo(() => defaultCurrency(db), []);
-  const rows = useMemo(() => searchProducts(db, { query, limit, inStockOnly: inStock, today }), [query, limit, inStock, today]);
+  const rows = useMemo(() => { void tick; return searchProducts(db, { query, limit, inStockOnly: inStock, today }); }, [query, limit, inStock, today, tick]);
 
   return (
     <View style={s.container}>
@@ -36,6 +44,7 @@ export default function Products() {
         <TextInput style={s.input} value={text} onChangeText={setText} placeholder="SKU, nombre, OEM o código" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} accessibilityLabel="Buscar producto" />
         <Button title="Escanear" kind="secondary" onPress={() => router.push('/scan')} />
       </View>
+      {canCreate && <View style={{ paddingHorizontal: 12, paddingBottom: 8 }}><Button title="Nuevo producto" kind="secondary" onPress={() => router.push('/product/form')} /></View>}
       <View style={s.filter}>
         <Text style={{ color: colors.text }}>Solo con existencia</Text>
         <Switch value={inStock} onValueChange={(v) => { setInStock(v); setLimit(PAGE); }} accessibilityLabel="Solo con existencia" />
@@ -64,6 +73,8 @@ function Row({ item, currency, onPress }: { item: ProductRow; currency: ReturnTy
       <View style={{ flex: 1 }}>
         <Text style={s.sku}>{item.sku}</Text>
         <Text style={s.name} numberOfLines={2}>{item.name}</Text>
+        {item.brand ? <Text style={s.brand} numberOfLines={1}>{item.brand}</Text> : null}
+        {item.isLocal ? <View style={{ marginTop: 4 }}><Badge text="Sin enviar" tone="warn" /></View> : null}
       </View>
       <View style={{ alignItems: 'flex-end' }}>
         <Text style={s.price}>{item.price !== null ? formatMoney(item.price, currency) : 'Sin precio'}</Text>
@@ -83,5 +94,6 @@ const s = StyleSheet.create({
   name: { color: colors.muted },
   price: { fontWeight: '600', color: colors.text },
   stock: { color: colors.ok, fontSize: 12 },
+  brand: { color: colors.muted, fontSize: 12 },
   empty: { padding: 24, alignItems: 'center' },
 });

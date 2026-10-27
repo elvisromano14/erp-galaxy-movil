@@ -11,6 +11,9 @@ export interface AppSettings {
   allowPriceEdit: boolean;
   maxDiscountPct: number;
   allowCustomerCreate: boolean;
+  /** El usuario tiene `admin:products:create` / `admin:products:update` (lo calcula el servidor). */
+  allowProductCreate: boolean;
+  allowProductUpdate: boolean;
   deviceCode: string;
 }
 
@@ -20,7 +23,7 @@ export function getAppSettings(db: AppDb): AppSettings {
   const j = raw ? (JSON.parse(raw.json) as Record<string, any>) : {};
   return {
     company: j.company ?? null, seller: j.seller ?? null, sellerScope: j.sellerScope ?? 'OWN', defaultWarehouseId: j.defaultWarehouseId ?? null,
-    allowPriceEdit: !!j.allowPriceEdit, maxDiscountPct: Number(j.maxDiscountPct ?? 0), allowCustomerCreate: !!j.allowCustomerCreate,
+    allowPriceEdit: !!j.allowPriceEdit, maxDiscountPct: Number(j.maxDiscountPct ?? 0), allowCustomerCreate: !!j.allowCustomerCreate, allowProductCreate: !!j.allowProductCreate, allowProductUpdate: !!j.allowProductUpdate,
     deviceCode: getMeta(db, META.deviceCode) ?? 'D00',
   };
 }

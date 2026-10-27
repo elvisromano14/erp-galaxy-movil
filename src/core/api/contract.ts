@@ -2,7 +2,7 @@
 // src/vendor/erp/schema.d.ts (generado del OpenAPI); aquí solo se tipan las respuestas de sync/* y devices/*.
 
 export const PULL_ORDER = [
-  'app_settings', 'currencies', 'taxes', 'exchange_rates', 'price_lists', 'warehouses', 'customers', 'products', 'product_prices', 'stock_snapshots', 'my_documents',
+  'app_settings', 'currencies', 'taxes', 'exchange_rates', 'price_lists', 'warehouses', 'locations', 'units', 'categories', 'customers', 'products', 'product_prices', 'stock_snapshots', 'my_documents',
 ] as const;
 export type PullEntity = (typeof PULL_ORDER)[number];
 
@@ -27,7 +27,7 @@ export interface OpResult {
   linked?: boolean;
 }
 
-export type SyncEntity = 'customer' | 'sales_quote' | 'sales_order';
+export type SyncEntity = 'customer' | 'product' | 'sales_quote' | 'sales_order';
 export interface PushOperation {
   clientOpId: string; clientSeq: number; entity: SyncEntity; action: 'create' | 'update';
   /** Id local (UUID v7 generado en el dispositivo). */

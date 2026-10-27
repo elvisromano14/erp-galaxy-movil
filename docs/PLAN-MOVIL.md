@@ -499,6 +499,7 @@ Se configuran con `app.config.ts` y la variable `APP_ENV`; permiten instalar las
 
 ### 12.4 Actualizaciones
 
+- **Actualización automática dentro de la app (v0.2.0, decisión #51):** la app consulta `GET /mobile/app/latest?current=x.y.z` (con su sesión) al quedar lista y al volver a primer plano (como mucho cada 6 h); si hay versión mayor muestra «Hay una versión nueva» con las notas, descarga el APK (reanudable con `Range`, barra de progreso) a su espacio privado, verifica **tamaño y SHA-256** y abre el **instalador del sistema** (Android no permite instalar en silencio sin MDM: la persona pulsa «Instalar»). Obligatoria si la versión instalada es menor que la mínima (se integra con la pantalla de «Actualización requerida»); opcional se puede aplazar 24 h. Solo se ofrece el APK de la **misma variante** (`erp-ventas-<variante>-x.y.z.apk`); la firma debe ser la misma que la instalada. Ver [`LANZAMIENTO.md` §3 bis](LANZAMIENTO.md).
 - **Binario nuevo:** vía Play o APK. `GET /app/config` devuelve `minAppVersion`; si la versión instalada es menor, la app muestra "Actualización requerida" y **no sincroniza**, pero **conserva la cola**.
 - **Solo JavaScript (OTA):** `expo-updates` opcional; si se usa, aplicar solo con la app sin operaciones en curso y respetando `runtimeVersion`. Evaluar si compensa frente a la complejidad (con Play interna suele bastar).
 - **Esquema SQLite:** cada versión incluye migraciones; si fallan, se reconstruye la réplica y se **protege el outbox**.

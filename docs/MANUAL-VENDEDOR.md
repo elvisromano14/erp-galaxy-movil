@@ -15,6 +15,8 @@ A partir de ahí, la app abre con su **PIN o huella**, también sin conexión. S
 - **Escanear**: apunte la cámara al código de barras.
 - Toque un producto para ver **precios por lista, impuesto, equivalentes y existencias por depósito** («sincronizado hace…»).
 - **Ver existencia en vivo** consulta el sistema en ese momento (requiere conexión).
+- **Marca y ubicación** del producto se muestran en el detalle (la marca también se puede buscar).
+- **Nuevo producto** (si su usuario puede crear productos): botón en la pestaña Productos. Indique código (SKU), nombre, unidad (UND por omisión), categoría, impuesto, **marca** y **ubicación** (ambas opcionales), mínimos/máximos, códigos de barras (escriba o escanee) y precio. Queda disponible de inmediato y se envía solo cuando haya conexión; «Sin enviar» aparece hasta entonces. Si el servidor lo rechaza, el detalle explica qué corregir («Corregir y reenviar»). Si el código ya existe en el sistema, se vincula al existente. **Editar producto** (si tiene permiso) está en el detalle.
 
 ## 3. Clientes
 - Pestaña **Clientes**: busque por RIF, razón social o teléfono. El detalle muestra crédito disponible y saldo *al corte de la última sincronización*.
@@ -48,11 +50,12 @@ A partir de ahí, la app abre con su **PIN o huella**, también sin conexión. S
 ## 7. Más
 - **Cola de sincronización**: qué falta enviar y qué se rechazó.
 - **Restablecer datos descargados**: vuelve a bajar el catálogo (no borra sus pendientes).
+- **Buscar actualización / Actualizar la app**: la app avisa sola cuando hay una versión nueva (también en Inicio). Pulse *Descargar actualización*; al terminar, *Instalar ahora* y confirme en Android (la primera vez, permita «Instalar apps desconocidas» para ERP Ventas). Si se corta la señal, la descarga continúa donde quedó. Sus pendientes no se pierden.
 - **Diagnóstico**: para soporte.
 - **Cerrar sesión**: sus pendientes se conservan.
 
 ## 8. Si algo falla
 - **Teléfono perdido o robado**: avise a administración de inmediato; revocan el dispositivo y deja de funcionar.
-- **«Actualización requerida»**: instale la nueva versión de la app.
+- **«Actualización requerida»**: pulse *Descargar actualización* en esa misma pantalla e instálela (si no puede, descárguela en Configuración → App móvil del ERP).
 - **Pasaron más de 14 días sin conexión**: conéctese e inicie sesión de nuevo (no pierde nada).
 - Más ayuda: [`SOPORTE.md`](SOPORTE.md).

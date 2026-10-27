@@ -82,6 +82,18 @@ Marque cada punto en un teléfono real (idealmente 3 modelos: gama baja, media y
 - [ ] **Más → Diagnóstico**: versión, base, cola y registro (sin datos personales).
 - [ ] Forzar el cierre de la app mientras guarda un documento → no queda documento sin operación ni al revés.
 
+**Crear productos**
+- [ ] Con el permiso de producto: **Productos → Nuevo producto** con SKU, nombre, unidad, marca y ubicación; guardar **sin conexión** → aparece con «Sin enviar», se puede buscar y usar en una cotización; al volver la señal pasa a sincronizado (el SKU queda igual) y en el ERP aparecen marca y ubicación.
+- [ ] Sin marca ni ubicación: se guarda igual (son opcionales). SKU repetido: avisa y ofrece ver el existente. Escanear un código de barras con la cámara desde el formulario.
+- [ ] Editar un producto desde el detalle; con el producto cambiado a la vez en el ERP → «VERSION_CONFLICT» explicado y se corrige tras sincronizar. Usuario sin permiso: no ve «Nuevo producto» ni «Editar».
+
+**Actualización automática** (necesita dos APK firmados con la misma clave: la 0.2.0 instalada y una posterior publicada con `publish-apk.sh`)
+- [ ] Al abrir (o volver a primer plano) aparece el aviso en Inicio y la pantalla «Hay una versión nueva» con las notas; «Más tarde» no vuelve a salir en 24 h con esa versión.
+- [ ] **Descargar actualización**: barra de progreso; en modo avión a mitad → mensaje claro y, al volver la señal, **continúa donde quedó**. Al terminar: «Verificando la descarga».
+- [ ] **Instalar ahora**: la primera vez Android pide «Permitir de esta fuente» (botón «Abrir ajustes de instalación»); instala SOBRE la app (no una copia), conserva sesión, datos y la cola pendiente y abre en la versión nueva.
+- [ ] Subir `MOBILE_MIN_APP_VERSION` por encima de la instalada: la app muestra «Actualización requerida» con el mismo panel de descarga e instalación; sin aplazar.
+- [ ] Un APK con otra firma o de otra variante NO actualiza (Android lo rechaza / la app no lo ofrece).
+
 **Rendimiento** (gama media-baja: 3 GB RAM, Android 10)
 - [ ] Arranque en frío < 3 s · búsqueda con 50 000 productos < 200 ms · guardar una cotización de 30 líneas < 300 ms.
 

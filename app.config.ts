@@ -19,7 +19,7 @@ export default (): ExpoConfig => ({
   name: env === 'prod' ? 'ERP Ventas' : `ERP Ventas (${env})`,
   slug: 'erp-galaxy-movil',
   scheme: 'erpventas',
-  version: '0.1.2',
+  version: '0.2.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'dark',
@@ -28,7 +28,8 @@ export default (): ExpoConfig => ({
     // Número de versión para Play: el CI lo fija con VERSION_CODE (debe crecer en cada publicación).
     versionCode: Number(process.env.VERSION_CODE ?? 1),
     allowBackup: false, // sin copias de seguridad de Android (datos del cliente en el teléfono)
-    permissions: ['CAMERA'],
+    // REQUEST_INSTALL_PACKAGES: la actualización dentro de la app abre el instalador del sistema con el APK descargado.
+    permissions: ['CAMERA', 'REQUEST_INSTALL_PACKAGES'],
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/android-icon-foreground.png',

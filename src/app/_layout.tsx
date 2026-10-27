@@ -6,7 +6,8 @@ import { useEffect } from 'react';
 import { ActivityIndicator, AppState, Text, View } from 'react-native';
 import { useSession } from '../core/session/hooks';
 import type { SessionStatus } from '../core/session/SessionService';
-import { session } from '../core/services';
+import { session, updater } from '../core/services';
+import { useUpdate } from '../features/update/hooks';
 import { startSyncTriggers } from '../sync/triggers';
 import { registerBackgroundSync } from '../sync/backgroundTask';
 import { db } from '../db/client';
@@ -25,7 +26,19 @@ function Gate() {
   const router = useRouter();
   const segments = useSegments();
 
+  const promptNow = useUpdate((s) => s.promptNow);
   useEffect(() => { void session.start(); return startSyncTriggers(session); }, []);
+  // Actualización de la app: se consulta al quedar lista la sesión y al volver a primer plano (como mucho cada 6 h).
+  useEffect(() => {
+    if (status !== 'ready') return;
+    void updater.check();
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') void updater.check(); });
+    return () => sub.remove();
+  }, [status]);
+  // Versión nueva no pospuesta: se abre la pantalla de actualización (una sola vez por consulta).
+  useEffect(() => {
+    if (status === 'ready' && promptNow && !(segments as string[]).includes('update')) { updater.markPrompted(); router.push('/update'); }
+  }, [status, promptNow, segments, router]);
   // La tarea periódica en segundo plano se registra cuando la sesión está lista (complementaria: no está garantizada por el sistema).
   useEffect(() => { if (status === 'ready') void registerBackgroundSync(); }, [status]);
   useEffect(() => {
@@ -46,6 +59,7 @@ function Gate() {
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, headerStyle: { backgroundColor: colors.card }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text } }}>
       <Stack.Screen name="product/[id]" options={{ headerShown: true, title: 'Producto' }} />
+      <Stack.Screen name="product/form" options={{ headerShown: true, title: 'Producto' }} />
       <Stack.Screen name="customer/[id]" options={{ headerShown: true, title: 'Cliente' }} />
       <Stack.Screen name="customer/form" options={{ headerShown: true, title: 'Cliente' }} />
       <Stack.Screen name="document/editor" options={{ headerShown: true, title: 'Cotización' }} />
@@ -54,6 +68,7 @@ function Gate() {
       <Stack.Screen name="document/pick-product" options={{ headerShown: true, title: 'Agregar producto', presentation: 'modal' }} />
       <Stack.Screen name="diagnostics" options={{ headerShown: true, title: 'Diagnóstico' }} />
       <Stack.Screen name="sync" options={{ headerShown: true, title: 'Sincronización' }} />
+      <Stack.Screen name="update" options={{ headerShown: true, title: 'Actualización', presentation: 'modal' }} />
       <Stack.Screen name="scan" options={{ headerShown: true, title: 'Escanear código', presentation: 'modal' }} />
     </Stack>
   );

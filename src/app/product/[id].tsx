@@ -1,19 +1,28 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import type { LiveStock } from '../../core/api/contract';
 import { caracasToday, formatMoney, formatNumber, formatQty, timeAgo } from '../../core/format';
 import { api, db, session } from '../../core/services';
 import { usePermission, useSession } from '../../core/session/hooks';
+import { latestForEntity } from '../../db/repositories/outbox';
 import { getProductDetail } from '../../db/repositories/products';
+import { getAppSettings } from '../../db/repositories/settings';
+import { explainError } from '../../features/documents/explain';
 import { fetchLiveStock } from '../../features/products/liveStock';
-import { Banner, Busy, Button, ErrorText, Muted, Screen, colors } from '../../ui/kit';
+import { Badge, Banner, Busy, Button, ErrorText, Muted, Screen, colors } from '../../ui/kit';
 
 export default function ProductDetail() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const today = caracasToday();
-  const detail = useMemo(() => getProductDetail(db, id, today), [id, today]);
+  const [tick, setTick] = useState(0);
+  useFocusEffect(useCallback(() => { setTick((t) => t + 1); }, [])); // al volver de editar se relee
+  const detail = useMemo(() => { void tick; return getProductDetail(db, id, today); }, [id, today, tick]);
+  const lastOp = useMemo(() => { void tick; return id ? latestForEntity(db, 'product', id) ?? null : null; }, [id, tick]);
+  const hasUpdatePerm = usePermission('admin:products:update');
+  const hasCreatePerm = usePermission('admin:products:create');
+  const allow = useMemo(() => getAppSettings(db), []);
   const router = useRouter();
   const canLive = usePermission('inventory:stock:read');
   const canQuote = usePermission('sales:quotes:create');
@@ -34,8 +43,26 @@ export default function ProductDetail() {
     <Screen scroll>
       <Stack.Screen options={{ title: detail.sku }} />
       <Text style={s.name}>{detail.name}</Text>
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        {detail.isLocal && (!lastOp || lastOp.status === 'PENDING' || lastOp.status === 'SENDING') && <Badge text="Sin enviar" tone="warn" />}
+        {lastOp?.status === 'REJECTED' && <Badge text="Rechazado" tone="error" />}
+        {lastOp && (lastOp.status === 'PENDING' || lastOp.status === 'SENDING') && !detail.isLocal && <Badge text="Cambios sin enviar" tone="warn" />}
+      </View>
+      {lastOp?.status === 'REJECTED' && <Banner>El servidor rechazó el último envío: {explainError(lastOp.lastError)} Corrija y guarde para reenviar.</Banner>}
       {canQuote && <Button title="Nueva cotización con este producto" onPress={() => router.push({ pathname: '/document/editor', params: { addProductId: detail.id } })} />}
       <Muted>{[detail.categoryName, detail.unitCode, detail.tax ? `${detail.tax.name}` : 'Sin impuesto'].filter(Boolean).join(' · ')}</Muted>
+      {(detail.brand || detail.location) && (
+        <Section title="Marca y ubicación">
+          {detail.brand ? <Line left="Marca" right={detail.brand} /> : null}
+          {detail.location ? <Line left="Ubicación" right={detail.location.name && detail.location.name !== detail.location.code ? `${detail.location.code} · ${detail.location.name}` : detail.location.code} /> : null}
+        </Section>
+      )}
+      {(detail.minStock || detail.maxStock) && Number(detail.minStock ?? 0) + Number(detail.maxStock ?? 0) > 0 && (
+        <Muted>Reposición: mínimo {formatQty(detail.minStock ?? 0)} · máximo {formatQty(detail.maxStock ?? 0)}</Muted>
+      )}
+      {(detail.isLocal ? hasCreatePerm && allow.allowProductCreate : hasUpdatePerm && allow.allowProductUpdate) && detail.trackingMode === 'NONE' && (
+        <Button title={lastOp?.status === 'REJECTED' ? 'Corregir y reenviar' : 'Editar producto'} kind="secondary" onPress={() => router.push({ pathname: '/product/form', params: { id: detail.id } })} />
+      )}
       {detail.description ? <Text style={{ color: colors.text }}>{detail.description}</Text> : null}
 
       <Section title="Precios">
