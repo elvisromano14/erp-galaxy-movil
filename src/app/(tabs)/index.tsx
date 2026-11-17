@@ -52,7 +52,7 @@ export default function Home() {
 
       <View style={s.grid}>
         <Metric icon="document-text-outline" label="Cotizaciones del mes" value={String(st.quotes.count ?? 0)} sub={money(st.quotes)} onPress={() => router.navigate('/documents')} />
-        <Metric icon="cart-outline" label="Pedidos del mes" value={String(st.orders.count ?? 0)} sub={money(st.orders)} onPress={() => router.navigate('/documents')} />
+        <Metric icon="cart-outline" label="Notas de entrega del mes" value={String(st.orders.count ?? 0)} sub={money(st.orders)} onPress={() => router.navigate('/documents')} />
         <Metric icon="cloud-upload-outline" label="Por enviar" value={String(queue.pending)} tone={queue.pending ? 'warn' : undefined} sub={queue.pending ? 'Se envían al sincronizar' : 'Todo al día'} onPress={() => router.push('/sync')} />
         <Metric icon="create-outline" label="Borradores" value={String(st.drafts ?? 0)} onPress={() => router.navigate('/documents')} />
         <Metric icon="pricetags-outline" label="Productos" value={formatNumber(st.products ?? 0, 0)} onPress={() => router.navigate('/products')} />
@@ -71,7 +71,7 @@ export default function Home() {
         return (
           <Pressable key={d.id} onPress={() => router.push({ pathname: '/document/[id]', params: { id: d.id } })} style={s.recent} accessibilityRole="button">
             <View style={{ flex: 1 }}>
-              <Text style={s.recentNum}>{d.docType === 'ORDER' ? 'Pedido ' : ''}{d.displayNumber}</Text>
+              <Text style={s.recentNum}>{d.docType === 'ORDER' ? 'Nota de entrega ' : ''}{d.displayNumber}</Text>
               <Text style={{ color: colors.muted }} numberOfLines={1}>{d.customerName ?? 'Sin cliente'}</Text>
             </View>
             <View style={{ alignItems: 'flex-end', gap: 4 }}>

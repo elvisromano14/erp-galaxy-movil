@@ -9,6 +9,7 @@ import { useAllPermissions } from '../../core/session/hooks';
 import { explainError, SERVER_STATUS_LABEL } from '../../features/documents/explain';
 import { buildTimeline } from '../../features/documents/timeline';
 import { toBs } from '../../features/documents/calc';
+import { brandsOf } from '../../features/documents/brands';
 import { buildPdfData } from '../../features/documents/pdfData';
 import { currencyOf, latestRate } from '../../features/documents/pricing';
 import { shareDocumentPdf } from '../../features/documents/sharePdf';
@@ -33,6 +34,7 @@ export default function DocumentDetail() {
   const st = STATUS_LABEL[d.localStatus] ?? { text: d.localStatus, tone: 'muted' as const };
   const origin = d.sourceDocumentId ? getDocument(db, d.sourceDocumentId) : null;
   const generated = d.docType === 'QUOTE' ? convertedTo(db, d.id) : undefined;
+  const brands = brandsOf(db, v.lines.map((l) => l.productId));
   const timeline = buildTimeline(v, listQueue(db, true).filter((o) => o.entityId === d.id));
 
   async function sharePdf() {
@@ -49,8 +51,8 @@ export default function DocumentDetail() {
     setError(null);
     try {
       const r = convertQuoteToOrder(db, d.id);
-      const note = r.existing ? 'Esta cotización ya tiene un pedido.' : r.expired ? 'La cotización estaba vencida: los precios se actualizaron con la lista vigente.' : r.repriced ? 'Los precios se actualizaron con la lista vigente.' : null;
-      if (note) Alert.alert('Convertir en pedido', note, [{ text: 'Continuar', onPress: () => router.push({ pathname: '/document/editor', params: { id: r.orderId } }) }]);
+      const note = r.existing ? 'Esta cotización ya tiene una nota de entrega.' : r.expired ? 'La cotización estaba vencida: los precios se actualizaron con la lista vigente.' : r.repriced ? 'Los precios se actualizaron con la lista vigente.' : null;
+      if (note) Alert.alert('Convertir en nota de entrega', note, [{ text: 'Continuar', onPress: () => router.push({ pathname: '/document/editor', params: { id: r.orderId } }) }]);
       else router.push({ pathname: '/document/editor', params: { id: r.orderId } });
     } catch (e) { setError(e instanceof DocumentError ? e.message : 'No se pudo convertir.'); }
   }
@@ -62,7 +64,7 @@ export default function DocumentDetail() {
   return (
     <Screen scroll>
       <Stack.Screen options={{ title: v.displayNumber }} />
-      <Text style={s.title}>{d.docType === 'ORDER' ? 'Pedido' : 'Cotización'} {v.displayNumber}</Text>
+      <Text style={s.title}>{d.docType === 'ORDER' ? 'Nota de entrega' : 'Cotización'} {v.displayNumber}</Text>
       <Muted>{v.customerName ?? 'Sin cliente'}</Muted>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Badge text={st.text} tone={st.tone} />
@@ -72,7 +74,7 @@ export default function DocumentDetail() {
       {d.localStatus === 'REJECTED' && <Banner>El servidor rechazó el documento. {explainError(v.lastOpError)}</Banner>}
       {d.localStatus === 'NEEDS_REVIEW' && <Banner>En revisión por administración. {explainError(v.lastOpError)}</Banner>}
       {origin && <Button title={`Origen: cotización ${origin.displayNumber}`} kind="secondary" onPress={() => router.push({ pathname: '/document/[id]', params: { id: origin.doc.id } })} />}
-      {generated && <Button title={`Pedido generado: ${generated.serverNumber ?? generated.localNumber ?? 'borrador'}`} kind="secondary" onPress={() => router.push({ pathname: '/document/[id]', params: { id: generated.id } })} />}
+      {generated && <Button title={`Nota de entrega generada: ${generated.serverNumber ?? generated.localNumber ?? 'borrador'}`} kind="secondary" onPress={() => router.push({ pathname: '/document/[id]', params: { id: generated.id } })} />}
       {d.localNumber && d.serverNumber && <Muted>Número provisional en el teléfono: {d.localNumber}</Muted>}
 
       <Text style={s.section}>Productos</Text>
@@ -80,6 +82,7 @@ export default function DocumentDetail() {
         <View key={l.id} style={s.line}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: '700', color: colors.text }}>{l.sku}</Text>
+            {brands.get(l.productId) ? <Text style={{ color: colors.muted, fontSize: 12 }}>Marca: {brands.get(l.productId)}</Text> : null}
             <Text style={{ color: colors.muted, fontSize: 12 }}>{formatQty(l.quantity)} × {formatMoney(l.unitPrice, cur)}{Number(l.discountPct) ? ` · desc. ${formatNumber(l.discountPct, 2)} %` : ''}</Text>
           </View>
           <Text style={{ fontWeight: '600', color: colors.text }}>{formatMoney(l.lineTotal, cur)}</Text>
@@ -101,7 +104,7 @@ export default function DocumentDetail() {
       ))}
 
       <ErrorText>{error}</ErrorText>
-      {d.docType === 'QUOTE' && canOrder && !generated && d.localStatus !== 'REJECTED' && d.localStatus !== 'DRAFT' && <Button title="Convertir en pedido" onPress={convert} />}
+      {d.docType === 'QUOTE' && canOrder && !generated && d.localStatus !== 'REJECTED' && d.localStatus !== 'DRAFT' && <Button title="Convertir en nota de entrega" onPress={convert} />}
       <Button title="Compartir PDF" disabled={busy} onPress={() => void sharePdf()} />
       <Button title="Imprimir recibo 58 mm" kind="secondary" icon="print-outline" disabled={busy} onPress={() => void printTicket()} />
       <Busy show={busy} />

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { caracasToday, formatMoney, formatNumber, formatQty } from '../../core/format';
 import { db, session } from '../../core/services';
+import { brandsOf } from '../../features/documents/brands';
 import { getCustomer } from '../../db/repositories/customers';
 import { type DocType, type DraftInput, type DraftLine, defaultValidUntil, getDocument, saveDraft, submitDocument } from '../../db/repositories/documents';
 import { getAppSettings } from '../../db/repositories/settings';
@@ -48,6 +49,7 @@ export default function DocumentEditor() {
     id: docId, docType, customerId, currencyId, paymentCondition: payment, creditDays: Number(creditDays) || 0, validUntil: isOrder ? null : validUntil || null,
     notes: notes.trim() || null, warehouseId: initial?.doc.warehouseId ?? settings.defaultWarehouseId, sourceDocumentId: initial?.doc.sourceDocumentId ?? null, lines,
   }), [docId, docType, isOrder, initial, customerId, currencyId, payment, creditDays, validUntil, notes, settings.defaultWarehouseId, lines]);
+  const brands = useMemo(() => brandsOf(db, lines.map((l) => l.productId)), [lines]);
   const totals = useMemo(() => computeTotals(lines.map((l) => ({ ...l, taxExempt: Number(l.taxRate) === 0 }))), [lines]);
   const totalBs = rate && currency?.code !== 'VES' ? toBs(totals.total, rate.rate) : null;
   const rateAge = rate ? Math.round((new Date(`${today}T00:00:00Z`).getTime() - new Date(`${rate.date}T00:00:00Z`).getTime()) / 86_400_000) : null;
@@ -131,9 +133,9 @@ export default function DocumentEditor() {
   const line = editing !== null ? lines[editing] : null;
   return (
     <Screen scroll>
-      <Stack.Screen options={{ title: initial?.displayNumber && initial.displayNumber !== '(borrador)' ? initial.displayNumber : isOrder ? 'Nuevo pedido' : 'Nueva cotización' }} />
-      {isOrder && initial?.doc.sourceDocumentId && <Banner>Pedido basado en una cotización: se vincula al enviarlo.</Banner>}
-      {isOrder && <Muted>Al enviarlo, el pedido se confirma en el sistema y reserva existencias.</Muted>}
+      <Stack.Screen options={{ title: initial?.displayNumber && initial.displayNumber !== '(borrador)' ? initial.displayNumber : isOrder ? 'Nueva nota de entrega' : 'Nueva cotización' }} />
+      {isOrder && initial?.doc.sourceDocumentId && <Banner>Nota de entrega basada en una cotización: se vincula al enviarla.</Banner>}
+      {isOrder && <Muted>Al enviarla, la nota de entrega se confirma en el sistema y compromete (reserva) las existencias.</Muted>}
       <Pressable style={s.card} onPress={() => router.push('/document/pick-customer')} accessibilityRole="button" accessibilityLabel="Elegir cliente">
         <Text style={s.label}>Cliente</Text>
         <Text style={s.value}>{customer?.legalName ?? 'Toque para elegir un cliente'}</Text>
@@ -147,11 +149,13 @@ export default function DocumentEditor() {
       {lines.length === 0 && <Muted>Agregue productos con el buscador o el escáner.</Muted>}
       {lines.map((l, i) => {
         const t = totals.lines[i];
+        const brand = brands.get(l.productId);
         return (
           <Pressable key={`${l.productId}`} style={s.line} onPress={() => setEditing(i)} accessibilityRole="button" accessibilityLabel={`Editar ${l.sku}`}>
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: '700', color: colors.text }}>{l.sku}</Text>
               <Text style={{ color: colors.muted }} numberOfLines={2}>{l.name}</Text>
+              {brand ? <Text style={{ color: colors.muted, fontSize: 12 }}>Marca: {brand}</Text> : null}
               <Text style={{ color: colors.muted, fontSize: 12 }}>{formatQty(l.quantity)} × {formatMoney(l.unitPrice, currency)}{Number(l.discountPct) ? ` · desc. ${formatNumber(l.discountPct, 2)} %` : ''}{Number(l.taxRate) ? '' : ' · exento'}</Text>
             </View>
             <Text style={{ fontWeight: '600', color: colors.text }}>{formatMoney(t.net, currency)}</Text>
@@ -179,7 +183,7 @@ export default function DocumentEditor() {
       {validation.warnings.map((m) => <Banner key={m}>{m}</Banner>)}
       <ErrorText>{error}</ErrorText>
       <Button title="Guardar borrador" kind="secondary" onPress={saveAndExit} />
-      <Button title={isOrder ? 'Guardar y enviar pedido' : 'Guardar y enviar'} disabled={validation.errors.length > 0} onPress={send} />
+      <Button title={isOrder ? 'Guardar y enviar nota de entrega' : 'Guardar y enviar'} disabled={validation.errors.length > 0} onPress={send} />
       <Muted>El precio, los impuestos y el número definitivo los confirma el servidor al sincronizar.</Muted>
 
       <LineModal line={line} currency={currency} canEditPrice={settings.allowPriceEdit} maxDiscount={settings.maxDiscountPct} onClose={() => setEditing(null)}

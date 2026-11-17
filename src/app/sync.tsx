@@ -9,7 +9,7 @@ import { desc } from 'drizzle-orm';
 import { explainError } from '../features/documents/explain';
 import { Badge, Banner, Busy, Button, colors, ErrorText, Muted, Screen } from '../ui/kit';
 
-const ENTITY: Record<string, string> = { customer: 'cliente', sales_quote: 'cotización', sales_order: 'pedido' };
+const ENTITY: Record<string, string> = { customer: 'cliente', sales_quote: 'cotización', sales_order: 'nota de entrega' };
 const ACTION: Record<string, string> = { create: 'Alta', update: 'Cambio' };
 const TONE: Record<string, 'muted' | 'warn' | 'error' | 'ok'> = { PENDING: 'warn', SENDING: 'warn', REJECTED: 'error', REVIEW: 'warn', DONE: 'ok' };
 const LABEL: Record<string, string> = { PENDING: 'Pendiente', SENDING: 'Enviando', REJECTED: 'Rechazada', REVIEW: 'En revisión', DONE: 'Enviada' };

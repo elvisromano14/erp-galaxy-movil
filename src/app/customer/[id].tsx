@@ -32,7 +32,7 @@ export default function CustomerScreen() {
         {op?.status === 'REVIEW' && <Badge text="En revisión" tone="warn" />}
       </View>
       {failed && <Banner>El servidor rechazó el alta: {op?.lastError}. Corrija los datos y se reenviará.</Banner>}
-      {c.validationStatus === 'PENDING' && !failed && <Banner>Cliente nuevo: puede usarlo en cotizaciones y pedidos, pero administración debe validarlo antes de facturarle.</Banner>}
+      {c.validationStatus === 'PENDING' && !failed && <Banner>Cliente nuevo: puede usarlo en cotizaciones y notas de entrega, pero administración debe validarlo antes de facturarle.</Banner>}
 
       <Section title="Contacto">
         <Line k="Teléfono" v={c.phone} /><Line k="Correo" v={c.email} /><Line k="Dirección" v={c.address} />

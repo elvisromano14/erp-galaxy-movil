@@ -39,7 +39,7 @@ export default function Documents() {
   return (
     <View style={s.container}>
       <View style={s.chips}>
-        {([['ALL', 'Todo'], ['QUOTE', 'Cotizaciones'], ['ORDER', 'Pedidos']] as const).map(([k, label]) => (
+        {([['ALL', 'Todo'], ['QUOTE', 'Cotizaciones'], ['ORDER', 'Notas de entrega']] as const).map(([k, label]) => (
           <Pressable key={k} onPress={() => setType(k)} style={[s.chip, type === k && s.chipOn]} accessibilityRole="button" accessibilityState={{ selected: type === k }}>
             <Text style={{ color: type === k ? colors.onPrimary : colors.text, fontSize: 13 }}>{label}</Text>
           </Pressable>
@@ -60,7 +60,7 @@ export default function Documents() {
       />
       <View style={{ padding: 12, gap: 8 }}>
         {canQuote && <Button title="Nueva cotización" onPress={() => router.push('/document/editor')} />}
-        {canOrder && <Button title="Nuevo pedido" kind="secondary" onPress={() => router.push({ pathname: '/document/editor', params: { docType: 'ORDER' } })} />}
+        {canOrder && <Button title="Nueva nota de entrega" kind="secondary" onPress={() => router.push({ pathname: '/document/editor', params: { docType: 'ORDER' } })} />}
       </View>
     </View>
   );
@@ -72,7 +72,7 @@ function Row({ item, onPress }: { item: DocListRow; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={s.row} accessibilityRole="button" accessibilityLabel={`${item.displayNumber} ${item.customerName ?? ''}`}>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={s.num}>{item.docType === 'ORDER' ? 'Pedido ' : ''}{item.displayNumber}</Text>
+        <Text style={s.num}>{item.docType === 'ORDER' ? 'Nota de entrega ' : ''}{item.displayNumber}</Text>
         <Text style={s.muted} numberOfLines={1}>{item.customerName ?? 'Sin cliente'}</Text>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 4 }}>

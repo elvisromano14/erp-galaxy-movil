@@ -3,7 +3,7 @@ import { COLS, pair, receiptEscPos, receiptLines, receiptText, testReceiptLines,
 import type { PdfData } from '../src/features/documents/pdfHtml';
 
 const data: PdfData = {
-  kind: 'PEDIDO', number: 'OFF-D01-0007', provisional: true, date: '2026-11-17', validUntil: null,
+  kind: 'NOTA DE ENTREGA', number: 'OFF-D01-0007', provisional: true, date: '2026-11-17', validUntil: null,
   company: { legalName: 'Eléctricos del Sur, C.A.', tradeName: null, rif: 'J-12345678-9' }, seller: 'María Pérez',
   customer: { legalName: 'José Ñandú', rif: 'V-1234567', phone: null, address: 'Av. 5 de Julio, Maracaibo' },
   currency: { symbol: '$', decimals: 2, code: 'USD' },

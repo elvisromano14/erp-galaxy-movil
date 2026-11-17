@@ -1,14 +1,14 @@
 import { formatMoney, formatNumber, formatQty } from '../../core/format';
 
 export interface PdfData {
-  kind: 'COTIZACIÓN' | 'PEDIDO';
+  kind: 'COTIZACIÓN' | 'NOTA DE ENTREGA';
   number: string; provisional: boolean;
   date: string; validUntil: string | null;
   company: { legalName: string; tradeName: string | null; rif: string } | null;
   seller: string | null;
   customer: { legalName: string; rif: string; phone: string | null; address: string | null } | null;
   currency: { symbol: string; decimals: number; code: string };
-  lines: { sku: string | null; name: string; quantity: string; unitPrice: string; discountPct: string; taxRate: string; net: string }[];
+  lines: { sku: string | null; brand?: string | null; name: string; quantity: string; unitPrice: string; discountPct: string; taxRate: string; net: string }[];
   totals: { subtotal: string; taxTotal: string; total: string; byRate: { taxRate: string; base: string; tax: string }[] };
   /** Equivalente en Bs con la tasa indicada (informativo). */
   bs: { total: string; rate: string; rateDate: string } | null;
@@ -25,7 +25,7 @@ const day = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice
 export function buildDocumentHtml(d: PdfData): string {
   const m = (v: string) => esc(formatMoney(v, d.currency));
   const rows = d.lines.map((l) => `
-    <tr><td>${esc(l.sku ?? '')}</td><td>${esc(l.name)}</td><td class="r">${esc(formatQty(l.quantity))}</td><td class="r">${m(l.unitPrice)}</td>
+    <tr><td>${esc(l.sku ?? '')}</td><td>${esc(l.name)}${l.brand ? `<br><span class="muted">Marca: ${esc(l.brand)}</span>` : ''}</td><td class="r">${esc(formatQty(l.quantity))}</td><td class="r">${m(l.unitPrice)}</td>
     <td class="r">${Number(l.discountPct) ? esc(formatNumber(l.discountPct, 2)) + ' %' : ''}</td><td class="r">${Number(l.taxRate) ? esc(formatNumber(l.taxRate, 0)) + ' %' : 'Exento'}</td><td class="r">${m(l.net)}</td></tr>`).join('');
   const taxes = d.totals.byRate.map((g) => `<tr><td>IVA ${esc(formatNumber(g.taxRate, 0))} % (base ${m(g.base)})</td><td class="r">${m(g.tax)}</td></tr>`).join('');
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">

@@ -29,7 +29,9 @@ export default function Scan() {
     );
   }
 
-  function onScan(data: string) {
+  function onScan(raw: string) {
+    // Los QR de las etiquetas del ERP traen el código en la primera línea y nombre/marca debajo.
+    const data = raw.split(/\r?\n/)[0].trim();
     if (handling.current) return;
     handling.current = true;
     // Desde el formulario de producto: se devuelve el código leído, sin buscar nada.

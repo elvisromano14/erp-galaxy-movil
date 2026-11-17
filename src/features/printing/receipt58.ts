@@ -35,7 +35,7 @@ export function pair(label: string, value: string, width = COLS): string {
 }
 
 /**
- * Líneas del recibo de un pedido o cotización (documento local). Es un comprobante interno, no una factura fiscal.
+ * Líneas del recibo de una nota de entrega o cotización (documento local). Es un comprobante interno, no una factura fiscal.
  * Si el número es provisional (`OFF-…`) se advierte: el definitivo lo asigna el servidor al sincronizar.
  */
 export function receiptLines(d: PdfData): ReceiptLine[] {
@@ -44,7 +44,7 @@ export function receiptLines(d: PdfData): ReceiptLine[] {
   const wrapAdd = (text: string, o: Omit<ReceiptLine, 'text'> = {}) => wrap(text).forEach((t) => add(t, o));
   const rule = () => L.push({ text: '-'.repeat(COLS), rule: true });
   const n = (v: string, dp = 2) => formatNumber(v, dp);
-  const kind = d.kind === 'PEDIDO' ? 'PEDIDO' : 'COTIZACION';
+  const kind = d.kind === 'NOTA DE ENTREGA' ? 'NOTA DE ENTREGA' : 'COTIZACION';
 
   wrap(d.company?.tradeName ?? d.company?.legalName ?? 'Empresa').forEach((t) => add(t, { align: 'center', bold: true, big: true }));
   if (d.company) add(`RIF: ${d.company.rif}`, { align: 'center' });
@@ -62,6 +62,7 @@ export function receiptLines(d: PdfData): ReceiptLine[] {
 
   for (const l of d.lines) {
     wrapAdd(`${l.name}${Number(l.taxRate) === 0 ? ' (E)' : ''}`, { bold: true });
+    if (l.brand) wrapAdd(`Marca: ${l.brand}`);
     add(pair(`${formatQty(l.quantity)} x ${n(l.unitPrice)}${Number(l.discountPct) ? ` -${n(l.discountPct, 0)}%` : ''}`, n(l.net)));
   }
   rule();
