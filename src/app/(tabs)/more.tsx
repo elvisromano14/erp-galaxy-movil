@@ -50,6 +50,7 @@ export default function More() {
       <Button title="Cerrar sesión" kind="danger" onPress={logout} />
       <View style={{ height: 8 }} />
       <Button title={newVersion ? `Actualizar la app (v${newVersion})` : 'Buscar actualización'} kind="secondary" icon="cloud-download-outline" onPress={() => router.push('/update')} />
+      <Button title="Impresora 58 mm" kind="secondary" icon="print-outline" onPress={() => router.push('/printer')} />
       <Button title="Diagnóstico" kind="secondary" onPress={() => router.push('/diagnostics')} />
       <Button title="Restablecer datos descargados" kind="secondary" onPress={reset} />
       <Muted>Restablecer y cerrar sesión no borran sus operaciones pendientes de envío.</Muted>

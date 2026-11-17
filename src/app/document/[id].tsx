@@ -12,6 +12,8 @@ import { toBs } from '../../features/documents/calc';
 import { buildPdfData } from '../../features/documents/pdfData';
 import { currencyOf, latestRate } from '../../features/documents/pricing';
 import { shareDocumentPdf } from '../../features/documents/sharePdf';
+import { createBluetoothTransport, getSavedPrinter, PrintError, printReceipt } from '../../features/printing/bluetoothPrinter';
+import { receiptLines } from '../../features/printing/receipt58';
 import { Badge, Banner, Busy, Button, colors, ErrorText, Muted, Screen } from '../../ui/kit';
 import { STATUS_LABEL } from '../(tabs)/documents';
 
@@ -37,6 +39,11 @@ export default function DocumentDetail() {
     setBusy(true); setError(null);
     try { if ((await shareDocumentPdf(buildPdfData(db, v!))) === 'unavailable') setError('Este teléfono no puede compartir archivos.'); }
     catch { setError('No se pudo generar el PDF.'); } finally { setBusy(false); }
+  }
+  async function printTicket() {
+    setBusy(true); setError(null);
+    try { await printReceipt(createBluetoothTransport(), getSavedPrinter(db), receiptLines(buildPdfData(db, v!))); }
+    catch (e) { setError(e instanceof PrintError ? e.message : 'No se pudo imprimir el recibo.'); } finally { setBusy(false); }
   }
   function convert() {
     setError(null);
@@ -96,6 +103,7 @@ export default function DocumentDetail() {
       <ErrorText>{error}</ErrorText>
       {d.docType === 'QUOTE' && canOrder && !generated && d.localStatus !== 'REJECTED' && d.localStatus !== 'DRAFT' && <Button title="Convertir en pedido" onPress={convert} />}
       <Button title="Compartir PDF" disabled={busy} onPress={() => void sharePdf()} />
+      <Button title="Imprimir recibo 58 mm" kind="secondary" icon="print-outline" disabled={busy} onPress={() => void printTicket()} />
       <Busy show={busy} />
       {v.editable && <Button title={d.localStatus === 'REJECTED' ? 'Corregir y reenviar' : 'Editar'} kind="secondary" onPress={() => router.push({ pathname: '/document/editor', params: { id: d.id } })} />}
       <Button title="Duplicar" kind="secondary" onPress={duplicate} />
