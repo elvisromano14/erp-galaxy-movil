@@ -154,7 +154,7 @@ export class UpdateService {
       const finalPath = this.d.files.finalPathFor(version);
       if (this.d.files.sizeOf(finalPath) !== sizeBytes) {
         await downloadWithResume({
-          request: (range) => this.d.api.stream(downloadPath, { range: range ?? undefined }), sink: part, expectedSize: sizeBytes, signal: this.cancel,
+          request: (range) => this.d.api.stream(downloadPath.replace(/^\/api\/v1/, ''), { range: range ?? undefined }), sink: part, expectedSize: sizeBytes, signal: this.cancel,
           onProgress: (received, total) => this.set({ progress: { received, total } }),
         });
         this.set({ phase: 'verifying', verifying: 0 });
